@@ -25,7 +25,13 @@ WbDeviceTag ps[NB_SENSORS]; // list of distance sensor handles
 WbDeviceTag left_motor; //handler for left wheel of the robot
 WbDeviceTag right_motor; //handler for the right wheel of the robot
 
-//-----------------------------------------------fitness evaluation-------------
+struct Vector {
+   double left_speed;
+   double right_speed;   
+};
+
+
+//-------------------fitness evaluation from braitenberg solution (check if we use the same for the project)-------------
 // The fitness evaluation functions are provided to help you testing the
 // performance of your controller.
 
@@ -77,6 +83,8 @@ double fitness_compute() {
 }
 //------------------------------------------------------------------------------
 
+
+
 // controller initialization
 static void reset(void) {
   fitness_reset();
@@ -97,44 +105,20 @@ static void reset(void) {
 
 // controller main loop
 static int run(int ms) {
-  // coefficients
-  static double l_weight[NB_SENSORS] = {0.5, 0.25, 0.2, 0, 0, 0, 0, 0};
-  static double r_weight[NB_SENSORS] = {0, 0, 0, 0, 0, 0.2, 0.25, 0.5};
-
-  static double ds_value[NB_SENSORS];
-  int i;
   float msl_w, msr_w;
-    
-  for (i = 0; i < NB_SENSORS; i++)
-    // read sensor values
-    // reads the handle in ps[i] and saves its value in ds_value[i]
-    ds_value[i] = wb_distance_sensor_get_value(ps[i]); // range: 0 (far) to 4095 (0 distance (in theory))
-
-  // choose behavior
-  double left_speed, right_speed;
   int duration;
-
-  left_speed = 100;
-  right_speed = 100;
-  duration = TIME_STEP;
   
-  // define speed with respect to the sensory feedback
-  for (i = 0; i < NB_SENSORS; i++)
-  {
-    left_speed += (-l_weight[i]) * ds_value[i];
-    right_speed += (-r_weight[i]) * ds_value[i];
-  }
-
-
+  Vector speeds = braitenberg_speeds(); // Here we will add all the other components, with respective weights (or FSM)
+  
   // update fitness
-  fitness_step(left_speed, right_speed, ds_value);
+  fitness_step(speeds.left_speed, speeds.right_speed, ds_value);
 
   // actuate wheel motors
   // sets the e-pucks wheel speeds to left_speed (left wheel) and right_speed (right wheel)
   // max speed is 1000 == 2 turns per second
   // Set speed
-  msl_w = left_speed*MAX_SPEED_WEB/1000;
-  msr_w = right_speed*MAX_SPEED_WEB/1000;
+  msl_w = speeds.left_speed*MAX_SPEED_WEB/1000;
+  msr_w = speeds.right_speed*MAX_SPEED_WEB/1000;
   wb_motor_set_velocity(left_motor, msl_w);
   wb_motor_set_velocity(right_motor, msr_w);
 
@@ -150,6 +134,7 @@ static int run(int ms) {
 
 int main() {
   int duration = TIME_STEP;
+  duration = TIME_STEP;
 
   wb_robot_init(); // controller initialization
   reset();
@@ -162,3 +147,37 @@ int main() {
   wb_robot_cleanup();
   return 0;
 }
+
+Vector braitenberg_speeds() {
+    // coefficients
+  static double l_weight[NB_SENSORS] = {0.5, 0.25, 0.2, 0, 0, 0, 0, 0};
+  static double r_weight[NB_SENSORS] = {0, 0, 0, 0, 0, 0.2, 0.25, 0.5};
+
+  static double ds_value[NB_SENSORS];
+  int i;
+  Vector braitenberg;
+  
+    
+  for (i = 0; i < NB_SENSORS; i++)
+    // read sensor values
+    // reads the handle in ps[i] and saves its value in ds_value[i]
+    ds_value[i] = wb_distance_sensor_get_value(ps[i]); // range: 0 (far) to 4095 (0 distance (in theory))
+
+  // choose behavior
+
+
+  braitenberg.left_speed = 0;
+  braitenberg.right_speed = 0;
+
+  
+  // define speed with respect to the sensory feedback
+  for (i = 0; i < NB_SENSORS; i++)
+  {
+    braitenberg.left_speed += (-l_weight[i]) * ds_value[i];
+    braitenberg.right_speed += (-r_weight[i]) * ds_value[i];
+  }
+
+  
+  return braitenberg_speeds;
+}
+
