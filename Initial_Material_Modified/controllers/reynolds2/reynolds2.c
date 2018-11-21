@@ -24,7 +24,7 @@
 
 #define NB_SENSORS	  8	  // Number of distance sensors
 #define MIN_SENS          350     // Minimum sensibility value
-#define MAX_SENS          4796    // Maximum sensibility value
+#define MAX_SENS          4096    // Maximum sensibility value
 #define MAX_SPEED         800     // Maximum speed
 /*Webots 2018b*/
 #define MAX_SPEED_WEB      6.28    // Maximum speed webots
@@ -39,15 +39,16 @@
 
 
 #define RULE1_THRESHOLD     0.20   // Threshold to activate aggregation rule. default 0.20
-#define RULE1_WEIGHT        (1.3/10)	   // Weight of aggregation rule. default 0.6/10
+#define RULE1_WEIGHT        (0.5/10)	   // Weight of aggregation rule. default 0.6/10
 
 #define RULE2_THRESHOLD     0.15   // Threshold to activate dispersion rule. default 0.15
 #define RULE2_WEIGHT        (0.02/10)	   // Weight of dispersion rule. default 0.02/10
 
-#define RULE3_WEIGHT        (1.0/10)   // Weight of consistency rule. default 1.0/10
+#define RULE3_WEIGHT        (1./10)   // Weight of consistency rule. default 1.0/10
 
-#define MIGRATION_WEIGHT    (0.101/10)   // Wheight of attraction towards the common goal. default 0.01/10
+#define MIGRATION_WEIGHT    (0.01/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
+#define BRT_WEIGHT           2
 #define MIGRATORY_URGE 1 // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
@@ -57,7 +58,9 @@ WbDeviceTag left_motor; //handler for left wheel of the robot
 WbDeviceTag right_motor; //handler for the right wheel of the robot
 /*Webots 2018b*/
 
-int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // for obstacle avoidance
+int e_puck_matrix[16] = {57,45,30,20,15,15,5,5,5,5,15,15,20,30,45,58}; // for obstacle avoidance
+//static double l_weight[NB_SENSORS] = {0.5, 0.25, 0.2, 0, 0, 0, 0, 0};
+//static double r_weight[NB_SENSORS] = {0, 0, 0, 0, 0, 0.2, 0.25, 0.5};
 
 
 WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
@@ -73,7 +76,7 @@ float prev_my_position[3];  		// X, Z, Theta of the current robot in the previou
 float speed[FLOCK_SIZE][2];		// Speeds calculated with Reynold's rules
 float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules
 int initialized[FLOCK_SIZE];		// != 0 if initial positions have been received
-float migr[2] = {0,-25};	        // Migration vector
+float migr[2] = {0,-1};	        // Migration vector
 char* robot_name;
 
 float theta_robots[FLOCK_SIZE];
@@ -174,7 +177,7 @@ void compute_wheel_speeds(int *msl, int *msr)
 	
 	float x = speed[robot_id][0]*cosf(my_position[2]) + speed[robot_id][1]*sinf(my_position[2]); // x in robot coordinates
 	float z = -speed[robot_id][0]*sinf(my_position[2]) + speed[robot_id][1]*cosf(my_position[2]); // z in robot coordinates
-//	printf("id = %d, x = %f, y = %f\n", robot_id, x, z);
+	printf("id = %d, x = %f, y = %f\n", robot_id, x, z);
 	float Ku = 0.2;   // Forward control coefficient
 	float Kw = 1;  // Rotational control coefficient
 	float range = sqrtf(x*x + z*z);	  // Distance to the wanted position
@@ -217,10 +220,10 @@ void reynolds_rules() {
              }
   	}
 	
-	for (j=0;j<2;j++) {
-            rel_avg_speed[j] /= FLOCK_SIZE-1 ;
-            rel_avg_loc[j]   /= FLOCK_SIZE-1;
-         }
+            for (j=0;j<2;j++) {
+              rel_avg_speed[j] /= FLOCK_SIZE-1 ;
+              rel_avg_loc[j]   /= FLOCK_SIZE-1;
+            }
 	/* Rule 1 - Aggregation/Cohesion: move towards the center of mass */
     
         for (j=0;j<2;j++) 
@@ -234,7 +237,7 @@ void reynolds_rules() {
              //if neighbor k is too close (Euclidean distance )
                  if (pow(relative_pos[k][0],2)+pow(relative_pos[k][1],2)<RULE2_THRESHOLD){
                      for (j=0;j<2;j++) {
-          	   dispersion[j] -= 1/relative_pos[k][j]; //relative distance to k 
+          	   dispersion[j] -= 1/(1+relative_pos[k][j]); //relative distance to k 
               	   }
                  }
              }
@@ -250,9 +253,9 @@ void reynolds_rules() {
          //aggregation of all behaviors with relative influence determined by weights
          for (j=0;j<2;j++) 
 	{
-                 speed[robot_id][j] = cohesion[j] * RULE1_WEIGHT;
-                 speed[robot_id][j] +=  dispersion[j] * RULE2_WEIGHT;
-                 speed[robot_id][j] +=  consistency[j] * RULE3_WEIGHT;
+                 speed[robot_id][j] = 0.01* cohesion[j] * RULE1_WEIGHT;
+                 speed[robot_id][j] += 0.01* dispersion[j] * RULE2_WEIGHT;
+                 speed[robot_id][j] +=0.01*  consistency[j] * RULE3_WEIGHT;
          }
         speed[robot_id][1] *= -1; //y axis of webots is inverted
         
@@ -341,7 +344,8 @@ int main(){
 	max_sens = 0; 
 	
 	// Forever
-	for(;;){
+	for(int step=0;step<2000;step++){
+            printf("step %d /n",step);
 
 		bmsl = 0; bmsr = 0;
                 sum_sensors = 0;
@@ -350,13 +354,13 @@ int main(){
 		/* Braitenberg */
 		for(i=0;i<NB_SENSORS;i++) 
 		{
-			    distances[i]=wb_distance_sensor_get_value(ds[i]); //Read sensor values
+			 distances[i]=wb_distance_sensor_get_value(ds[i]); //Read sensor values
                             sum_sensors += distances[i]; // Add up sensor values
                             max_sens = max_sens>distances[i]?max_sens:distances[i]; // Check if new highest sensor value
 
                             // Weighted sum of distance sensor values for Braitenburg vehicle
-                            bmsr += e_puck_matrix[i] * distances[i];
-                            bmsl += e_puck_matrix[i+NB_SENSORS] * distances[i];
+                            bmsr += BRT_WEIGHT * e_puck_matrix[i] * distances[i];
+                            bmsl += BRT_WEIGHT * e_puck_matrix[i+NB_SENSORS]*distances[i];
                  }
 
 		 // Adapt Braitenberg values (empirical tests)
@@ -390,8 +394,12 @@ int main(){
 		}
     
 		// Add Braitenberg
+		
+		printf("robot %d: msl and msr before braitenberg: value (%d,%d)\n",robot_id,msl,msr);
 		msl += bmsl;
 		msr += bmsr;
+		printf("robot %d:msl and msr after braitenberg: value (%d,%d)\n",robot_id,msl,msr);
+		
                   
                   
                   //limit

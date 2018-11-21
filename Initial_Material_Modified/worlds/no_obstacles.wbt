@@ -325,7 +325,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation 0.5096601514735349 -3.1605997494724952e-21 -1.8793515722480667
+  translation -1.2862775434256308 -3.1605997494724952e-21 -0.22981349178480825
   children [
     Shape {
       appearance Appearance {
@@ -446,7 +446,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation -1.05597 -1.77636e-15 1.72366
+  translation -1.29261293533346 -1.77636e-15 0.09017708739342645
   children [
     Shape {
       appearance Appearance {
@@ -470,7 +470,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation -2.563716158835467 -2.6645352591003757e-15 -1.49752107750745
+  translation -2.7470108046340953 -2.6645352591003757e-15 -1.6229431480042196
   children [
     Shape {
       appearance Appearance {
