@@ -8,8 +8,8 @@ selectionDisabled: 0
 viewpointLocked: 0
 orthographicViewHeight: 1
 textFiles: 0 "controllers/reynolds2/reynolds2.c" "controllers/our_own_controller/our_own_controller.c"
-renderingDevicePerspectives: epuck0:camera;1;0.820513;0;0
-renderingDevicePerspectives: epuck4:camera;1;0.820513;0;0
-renderingDevicePerspectives: epuck2:camera;1;0.820513;0;0
-renderingDevicePerspectives: epuck3:camera;1;0.820513;0;0
-renderingDevicePerspectives: epuck1:camera;1;0.820513;0;0
+renderingDevicePerspectives: epuck0:camera;1;1;0;0
+renderingDevicePerspectives: epuck4:camera;1;1;0;0
+renderingDevicePerspectives: epuck2:camera;1;1;0;0
+renderingDevicePerspectives: epuck3:camera;1;1;0;0
+renderingDevicePerspectives: epuck1:camera;1;1;0;0

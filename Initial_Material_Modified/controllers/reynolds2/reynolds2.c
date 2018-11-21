@@ -24,7 +24,7 @@
 
 #define NB_SENSORS	  8	  // Number of distance sensors
 #define MIN_SENS          350     // Minimum sensibility value
-#define MAX_SENS          4096    // Maximum sensibility value
+#define MAX_SENS          4796    // Maximum sensibility value
 #define MAX_SPEED         800     // Maximum speed
 /*Webots 2018b*/
 #define MAX_SPEED_WEB      6.28    // Maximum speed webots
@@ -48,7 +48,7 @@
 
 #define MIGRATION_WEIGHT    (0.101/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
-#define MIGRATORY_URGE 2 // Tells the robots if they should just go forward or move towards a specific migratory direction
+#define MIGRATORY_URGE 1 // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
 
@@ -122,7 +122,7 @@ static void reset()
   
         printf("Reset: robot %d\n",robot_id_u);
         
-        migr[0] = 25;
+        migr[0] =0;
         migr[1] = -25;
 }
 
@@ -190,8 +190,7 @@ void compute_wheel_speeds(int *msl, int *msr)
 	*msl = (u - AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
 	*msr = (u + AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
 //	printf("bearing = %f, u = %f, w = %f, msl = %f, msr = %f\n", bearing, u, w, msl, msr);
-	limit(msl,MAX_SPEED);
-	limit(msr,MAX_SPEED);
+
 }
 
 
@@ -393,6 +392,11 @@ int main(){
 		// Add Braitenberg
 		msl += bmsl;
 		msr += bmsr;
+                  
+                  
+                  //limit
+//                 	limit(&msl,MAX_SPEED);
+//          	limit(&msr,MAX_SPEED);
                   
 		/*Webots 2018b*/
 		// Set speed
