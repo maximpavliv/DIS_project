@@ -49,8 +49,8 @@
 
 #define MIGRATION_WEIGHT    (0.01/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
-#define AVOIDANCE_WEIGHT 1
-#define FLOCK_AND_MIGRATION_WEIGHT 1
+#define BRAITENBERG_WEIGHT 3
+
 
 #define MIGRATORY_URGE 1 // Tells the robots if they should just go forward or move towards a specific migratory direction
 
@@ -381,14 +381,15 @@ int main(){
 		// Adapt Braitenberg values (empirical tests)
 		bmsl/=MIN_SENS; bmsr/=MIN_SENS;
                 bmsl+=66; bmsr+=72;
-                /*
+                
+              /*                  
                 //Braitenberg from lab2
               for (i = 0; i < NB_SENSORS; i++)
-                ds_value[i] = wb_distance_sensor_get_value(ps[i]); // range: 0 (far) to 4095 (0 distance (in theory))
+                distances[i] = wb_distance_sensor_get_value(ds[i]); // range: 0 (far) to 4095 (0 distance (in theory))
               for (i = 0; i < NB_SENSORS; i++)
               {
-                bmsl += (-l_weight[i]) * ds_value[i];
-                bmsr += (-r_weight[i]) * ds_value[i];
+                bmsl += (-l_weight[i]) * distances[i];
+                bmsr += (-r_weight[i]) * distances[i];
               }
               */
               
@@ -450,8 +451,8 @@ int main(){
 		}
     
 		// Add Braitenberg
-		msl += bmsl;
-		msr += bmsr;
+		msl += BRAITENBERG_WEIGHT*bmsl;
+		msr += BRAITENBERG_WEIGHT*bmsr;
 		
 		//added by Max
 		limit(&msl,MAX_SPEED);

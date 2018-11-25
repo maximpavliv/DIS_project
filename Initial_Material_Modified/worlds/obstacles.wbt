@@ -530,29 +530,29 @@ DEF epuck0 E-puck {
   translation -2.9 0 0
   rotation 0 1 0 -1.5700000000112309
   name "epuck0"
-  controller "reynolds2"
+  controller "reynolds"
 }
 DEF epuck1 E-puck {
   translation -2.9 0 0.1
   rotation 0 1 0 -1.5700000000112309
   name "epuck1"
-  controller "reynolds2"
+  controller "reynolds"
 }
 DEF epuck2 E-puck {
   translation -2.9 0 -0.1
   rotation 0 1 0 -1.5700000000112309
   name "epuck2"
-  controller "reynolds2"
+  controller "reynolds"
 }
 DEF epuck3 E-puck {
   translation -2.9 0 0.213892
   rotation 0 1 0 -1.5700000000112309
   name "epuck3"
-  controller "reynolds2"
+  controller "reynolds"
 }
 DEF epuck4 E-puck {
   translation -2.9 0 -0.2
   rotation 0 1 0 -1.5700000000112309
   name "epuck4"
-  controller "reynolds2"
+  controller "reynolds"
 }
