@@ -47,7 +47,7 @@
 
 #define RULE3_WEIGHT        (1.0/10)   // Weight of consistency rule. default 1.0/10
 
-#define MIGRATION_WEIGHT    (0.01/10)   // Wheight of attraction towards the common goal. default 0.01/10
+#define MIGRATION_WEIGHT    (0.01/10)   // Weight of attraction towards the common goal. default 0.01/10
 
 #define BRAITENBERG_WEIGHT 3
 
@@ -275,7 +275,7 @@ void reynolds_rules() {
         }
   
         // aggregation of all behaviors with relative influence determined by weights
-//        printf("id = %d, cx = %f, cy = %f\n", robot_id, cohesion[0], cohesion[1]);
+        // printf("id = %d, cx = %f, cy = %f\n", robot_id, cohesion[0], cohesion[1]);
         for (j=0;j<2;j++) 
 	{
                  speed[robot_id][j] = cohesion[j] * RULE1_WEIGHT;
@@ -309,9 +309,11 @@ void initial_pos(void){
 
 	
 	while (initialized[robot_id] == 0) {
-		
+
 		// wait for message
 		while (wb_receiver_get_queue_length(receiver) == 0)	wb_robot_step(TIME_STEP);
+
+		        printf("received message...\n");
 		
 		inbuffer = (char*) wb_receiver_get_data(receiver);
 		sscanf(inbuffer,"%d#%f#%f#%f##%f#%f",&rob_nb,&rob_x,&rob_z,&rob_theta, &migr[0], &migr[1]);
@@ -353,9 +355,10 @@ int main(){
 	char *inbuffer;			// Buffer for the receiver node
 	int max_sens;			// Store highest sensor value
 
- 	reset();			// Resetting the robot
+ 	reset();
+			// Resetting the robot
 	initial_pos();			// Initializing the robot's position
-	
+
 	msl = 0; msr = 0;  
 	max_sens = 0;
 	
@@ -439,7 +442,7 @@ int main(){
     
 		// Reynold's rules with all previous info (updates the speed[][] table)
 		reynolds_rules();
-		//printf("%f %f\n", speed[robot_id][0], speed[robot_id][1]);
+		printf("%f %f\n", speed[robot_id][0], speed[robot_id][1]);
     
 		// Compute wheels speed from Reynold's speed
 		compute_wheel_speeds(&msl, &msr);
@@ -450,6 +453,12 @@ int main(){
 			msr -= msr*max_sens/(2*MAX_SENS);
 		}
     
+              // printf("robot id %i sum_sensors %i\n", robot_id, sum_sensors);
+              
+               // reduce wheel speed (that is reynolds and migratory weights when a signal is detected
+              msl /= (sum_sensors>300?sum_sensors:300)/300;
+              msr /= (sum_sensors>300?sum_sensors:300)/300;
+              
 		// Add Braitenberg
 		msl += BRAITENBERG_WEIGHT*bmsl;
 		msr += BRAITENBERG_WEIGHT*bmsr;
