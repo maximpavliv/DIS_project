@@ -101,7 +101,6 @@ void compute_fitness(float* fit_c, float* fit_o) {
  */
  
 int main(int argc, char *args[]) {
-        printf("Flocking super\n");
 	char buffer[255];	// Buffer for sending data
 	int i;			// Index
   

@@ -313,8 +313,6 @@ void initial_pos(void){
 		// wait for message
 		while (wb_receiver_get_queue_length(receiver) == 0)	wb_robot_step(TIME_STEP);
 
-		        printf("received message...\n");
-		
 		inbuffer = (char*) wb_receiver_get_data(receiver);
 		sscanf(inbuffer,"%d#%f#%f#%f##%f#%f",&rob_nb,&rob_x,&rob_z,&rob_theta, &migr[0], &migr[1]);
 		// Only info about self will be taken into account at first.
@@ -442,7 +440,7 @@ int main(){
     
 		// Reynold's rules with all previous info (updates the speed[][] table)
 		reynolds_rules();
-		printf("%f %f\n", speed[robot_id][0], speed[robot_id][1]);
+		// printf("%f %f\n", speed[robot_id][0], speed[robot_id][1]);
     
 		// Compute wheels speed from Reynold's speed
 		compute_wheel_speeds(&msl, &msr);
