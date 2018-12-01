@@ -30,7 +30,7 @@
 /*Webots 2018b*/
 #define MAX_SPEED_WEB      6.28    // Maximum speed webots
 /*Webots 2018b*/
-#define FLOCK_SIZE	  4	  // Size of flock
+#define FLOCK_SIZE	  5	  // Size of flock
 #define TIME_STEP	  64	  // [ms] Length of time step
 
 #define AXLE_LENGTH 		0.052	// Distance between wheels of robot (meters)
@@ -340,7 +340,6 @@ void initial_pos(void){
  * Main function
  */
 int main(){ 	
-
 	int msl, msr;			// Wheel speeds
          /*Webots 2018b*/
 	float msl_w, msr_w;
