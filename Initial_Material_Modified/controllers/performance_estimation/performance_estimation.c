@@ -57,6 +57,15 @@ void reset(void) {
 }
 
 
+
+float max(float a,float b){
+  if (a>b)
+    return a;
+  else
+    return b;
+}
+
+
 /*
  * Compute performance metric.
  */
@@ -77,15 +86,17 @@ void update_avg_location() {
           }
 }
 
-void compute_fitness(float* fit_c, float* fit_o) {
+void compute_fitness(float* fit_c, float* fit_o,float* fit_vel) {
 	*fit_c = 0; *fit_o = 0;
 	// Compute performance indices
 	// Based on distance of the robots compared to the threshold and the deviation from the perfect angle towards
 	// the migration goal
-	float angle_diff;
+	float delta_avg_loc[2];	// previous Flock average positions
+            float max_vel_met;
 	int i;
-       // update average location 
-          
+           float orientation_sum_real=0;	
+           float orientation_sum_imaginary=0;
+	          
 	for (i=0;i<FLOCK_SIZE;i++) {
          // for (j=i+1;j<FLOCK_SIZE;j++) 
 		//{	
@@ -94,21 +105,25 @@ void compute_fitness(float* fit_c, float* fit_o) {
 		//}
 		*fit_c += fabs(sqrtf(powf(loc[i][0]-avg_loc[0],2)+powf(loc[i][1]-avg_loc[1],2)));
 
-		// Angle measure for each robot
-		angle_diff = fabsf(loc[i][2]-orient_migr);
-		*fit_o += angle_diff > M_PI ? 2*M_PI-angle_diff : angle_diff;
+		orientation_sum_real += cos(loc[i][2]);
+		orientation_sum_imaginary += sin(loc[i][2]);
+
+
 	}
 	//*fit_c /= FLOCK_SIZE*(FLOCK_SIZE+1)/2;
 	*fit_c /= FLOCK_SIZE;
-	*fit_o /= FLOCK_SIZE;
+	//fit_cluster = fit_cluster_ref/fit_cluster;
+	*fit_c = 1/(1+*fit_c);
+	*fit_o = (sqrt(powf(orientation_sum_real,2) + powf(orientation_sum_imaginary,2)))/FLOCK_SIZE;
+	 delta_avg_loc[0]=avg_loc[0]-prev_avg_loc[0];
+            delta_avg_loc[1]=avg_loc[1]-prev_avg_loc[1];
+
+            // vzlocity metric
+             max_vel_met=(delta_avg_loc[0]*mig_urge[0]+delta_avg_loc[1]*mig_urge[1])/sqrt(powf(mig_urge[0],2)+powf(mig_urge[1],2));
+             *fit_vel=max(0,max_vel_met)/MAX_SPEED;
+
 }
 
-float max(float a,float b){
-  if (a>b)
-    return a;
-  else
-    return b;
-}
 
 /*
  * Main function.
@@ -125,10 +140,11 @@ int main(int argc, char *args[]) {
 	float fit_cluster;			// Performance metric for aggregation
 	float fit_orient;			// Performance metric for orientation
 	float fit_velocity;			// Performance metric for velocity
-	float inst_overall;	       // Instant Overall Performance metric 
-	float fin_overall=0;	       // Final Overall Performance metric 
-	float delta_avg_loc[2];	// previous Flock average positions	
-	float max_vel_met;
+	float inst_perf;	       // Instant Performance metric 
+           float inter_sum=0;             //intermediary sum
+	float overall_perf;	       // Final Overall Performance metric 
+	
+
 		
 	for(;;) {
 		wb_robot_step(TIME_STEP);
@@ -145,25 +161,18 @@ int main(int argc, char *args[]) {
     			update_avg_location();
 
 			//Compute and normalize fitness values
-			compute_fitness(&fit_cluster, &fit_orient);
+			compute_fitness(&fit_cluster, &fit_orient, &fit_velocity);
 			//printf("time:%d, PREVIOUS:%f ,ACTUAL:%f \n", t,  prev_avg_loc[0], avg_loc[0]);	
+                                 prev_avg_loc[0] = avg_loc[0];	
+                                 prev_avg_loc[1] = avg_loc[1];
 
-                      delta_avg_loc[0]=avg_loc[0]-prev_avg_loc[0];
-                      delta_avg_loc[1]=avg_loc[1]-prev_avg_loc[1];
-                      prev_avg_loc[0] = avg_loc[0];	
-                      prev_avg_loc[1] = avg_loc[1];
-                      // vzlocity metric
-                      max_vel_met=(delta_avg_loc[0]*mig_urge[0]+delta_avg_loc[1]*mig_urge[1])/sqrt(pow(mig_urge[0],2)+pow(mig_urge[1],2));
-                      printf("time:%d, MAx vel:%f \n", t, max_vel_met/MAX_SPEED);
-                      fit_velocity=max(0,max_vel_met)/MAX_SPEED;
 
-			//fit_cluster = fit_cluster_ref/fit_cluster;
-			fit_cluster = 1/(1+fit_cluster);
-			fit_orient = 1-fit_orient/M_PI;
 			
-			inst_overall=fit_cluster*fit_orient*fit_velocity;	       
-        	       fin_overall+=inst_overall/(t+1);	   
-			printf("time:%d, Cohesion : %f,Orientation: %f,Velocity: %f,Instant overall:%f,Final overall:%f \n", t, fit_cluster, fit_orient,fit_velocity,inst_overall,fin_overall);			
+			inst_perf=fit_cluster*fit_orient*fit_velocity;
+				       
+                    	           inter_sum+=inst_perf;	   
+                     	           overall_perf=TIME_STEP*inter_sum/t;
+			printf("time:%d, Cohesion : %f,Orientation: %f,Velocity: %f,Instant performance:%f,Overall performance:%f \n", t, fit_cluster, fit_orient,fit_velocity,inst_perf,overall_perf);			
 			
 		}
 		
