@@ -25,9 +25,9 @@
 #define NB_SENSORS	  8	  // Number of distance sensors
 #define MIN_SENS          350     // Minimum sensibility value
 #define MAX_SENS          4096    // Maximum sensibility value
-#define MAX_SPEED         800     // Maximum speed
+#define MAX_SPEED         1000     // Maximum speed
 /*Webots 2018b*/
-#define MAX_SPEED_WEB      6.28    // Maximum speed webots
+#define MAX_SPEED_WEB      6.25    // Maximum speed webots
 /*Webots 2018b*/
 #define FLOCK_SIZE	  5	  // Size of flock
 #define TIME_STEP	  64	  // [ms] Length of time step
@@ -38,17 +38,16 @@
 #define DELTA_T			0.064	// Timestep (seconds)
 
 
-#define RULE1_THRESHOLD     0.20   // Threshold to activate aggregation rule. default 0.20
-#define RULE1_WEIGHT        (0.5/10)	   // Weight of aggregation rule. default 0.6/10
+#define RULE1_THRESHOLD     0.2 // Threshold to activate aggregation rule. default 0.20
+#define RULE1_WEIGHT        (0.6/10)	   // Weight of aggregation rule. default 0.6/10
 
-#define RULE2_THRESHOLD     0.15   // Threshold to activate dispersion rule. default 0.15
+#define RULE2_THRESHOLD     0.15  // Threshold to activate dispersion rule. default 0.15
 #define RULE2_WEIGHT        (0.02/10)	   // Weight of dispersion rule. default 0.02/10
 
 #define RULE3_WEIGHT        (1./10)   // Weight of consistency rule. default 1.0/10
+#define MIGRATION_WEIGHT    (0.05/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
-#define MIGRATION_WEIGHT    (0.01/10)   // Wheight of attraction towards the common goal. default 0.01/10
-
-#define BRT_WEIGHT           2
+#define BRT_WEIGHT           5
 #define MIGRATORY_URGE 1 // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
@@ -57,8 +56,8 @@
 WbDeviceTag left_motor; //handler for left wheel of the robot
 WbDeviceTag right_motor; //handler for the right wheel of the robot
 /*Webots 2018b*/
-
-int e_puck_matrix[16] = {57,45,30,20,15,15,5,5,5,5,15,15,20,30,45,58}; // for obstacle avoidance
+int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // Maze
+//int e_puck_matrix[16] = {57,45,30,20,15,15,5,5,5,5,15,15,20,30,45,58}; // for obstacle avoidance
 //static double l_weight[NB_SENSORS] = {0.5, 0.25, 0.2, 0, 0, 0, 0, 0};
 //static double r_weight[NB_SENSORS] = {0, 0, 0, 0, 0, 0.2, 0.25, 0.5};
 
@@ -76,7 +75,7 @@ float prev_my_position[3];  		// X, Z, Theta of the current robot in the previou
 float speed[FLOCK_SIZE][2];		// Speeds calculated with Reynold's rules
 float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules
 int initialized[FLOCK_SIZE];		// != 0 if initial positions have been received
-float migr[2] = {0,-1};	        // Migration vector
+float migr[2] = {0,-10};	        // Migration vector
 char* robot_name;
 
 float theta_robots[FLOCK_SIZE];
@@ -126,9 +125,17 @@ static void reset()
         printf("Reset: robot %d\n",robot_id_u);
         
         migr[0] =0;
-        migr[1] = -25;
+        migr[1] = -10;
 }
-
+/*
+ * Keep given float number within interval {-limit, limit}
+ */
+void limitf(float *number, double limit) {
+	if (*number > limit)
+		*number = limit;
+	if (*number < -limit)
+		*number = -limit;
+}
 
 /*
  * Keep given int number within interval {-limit, limit}
@@ -178,8 +185,8 @@ void compute_wheel_speeds(int *msl, int *msr)
 	float x = speed[robot_id][0]*cosf(my_position[2]) + speed[robot_id][1]*sinf(my_position[2]); // x in robot coordinates
 	float z = -speed[robot_id][0]*sinf(my_position[2]) + speed[robot_id][1]*cosf(my_position[2]); // z in robot coordinates
 	printf("id = %d, x = %f, y = %f\n", robot_id, x, z);
-	float Ku = 0.2;   // Forward control coefficient
-	float Kw = 1;  // Rotational control coefficient
+	float Ku = 0.2;   // Forward control coefficient 0.2
+	float Kw = 1;  // Rotational control coefficient 1
 	float range = sqrtf(x*x + z*z);	  // Distance to the wanted position
 	float bearing = -atan2(x, z);	  // Orientation of the wanted position
 	
@@ -192,7 +199,7 @@ void compute_wheel_speeds(int *msl, int *msr)
 	
 	*msl = (u - AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
 	*msr = (u + AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
-//	printf("bearing = %f, u = %f, w = %f, msl = %f, msr = %f\n", bearing, u, w, msl, msr);
+	//printf("bearing = %f, u = %f, w = %f, msl = %d, msr = %d\n", bearing, u, w, msl, msr);
 
 }
 
@@ -253,9 +260,9 @@ void reynolds_rules() {
          //aggregation of all behaviors with relative influence determined by weights
          for (j=0;j<2;j++) 
 	{
-                 speed[robot_id][j] = 0.01* cohesion[j] * RULE1_WEIGHT;
-                 speed[robot_id][j] += 0.01* dispersion[j] * RULE2_WEIGHT;
-                 speed[robot_id][j] +=0.01*  consistency[j] * RULE3_WEIGHT;
+                 speed[robot_id][j] = cohesion[j] * RULE1_WEIGHT;
+                 speed[robot_id][j] +=  dispersion[j] * RULE2_WEIGHT;
+                 speed[robot_id][j] +=  consistency[j] * RULE3_WEIGHT;
          }
         speed[robot_id][1] *= -1; //y axis of webots is inverted
         
@@ -299,7 +306,7 @@ void process_received_ping_messages(void)
 		message_direction = wb_receiver_get_emitter_direction(receiver);
 		message_rssi = wb_receiver_get_signal_strength(receiver);
 		double y = message_direction[2];
-		double x = message_direction[1];
+		double x = message_direction[0];
 
                 theta =	-atan2(y,x);
                 theta = theta + my_position[2]; // find the relative theta;
@@ -359,8 +366,8 @@ int main(){
                             max_sens = max_sens>distances[i]?max_sens:distances[i]; // Check if new highest sensor value
 
                             // Weighted sum of distance sensor values for Braitenburg vehicle
-                            bmsr += BRT_WEIGHT * e_puck_matrix[i] * distances[i];
-                            bmsl += BRT_WEIGHT * e_puck_matrix[i+NB_SENSORS]*distances[i];
+                            bmsr +=  e_puck_matrix[i] *distances[i];
+                            bmsl +=  e_puck_matrix[i+NB_SENSORS]*distances[i];
                  }
 
 		 // Adapt Braitenberg values (empirical tests)
@@ -394,14 +401,23 @@ int main(){
 		}
     
 		// Add Braitenberg
+      	       	//limit(&msl,MAX_SPEED-200);
+              //limit(&msr,MAX_SPEED-200); 
+              if (ABS(msl)>MAX_SPEED || ABS(msr)>MAX_SPEED)
+              {
+                  msl/=20;
+                  msr/=20;
+              }
 		
 		printf("robot %d: msl and msr before braitenberg: value (%d,%d)\n",robot_id,msl,msr);
-		msl += bmsl;
-		msr += bmsr;
+		msl+= BRT_WEIGHT * bmsl;
+		msr += BRT_WEIGHT * bmsr;
 		printf("robot %d:msl and msr after braitenberg: value (%d,%d)\n",robot_id,msl,msr);
 		
                   
-                  
+              		//added by Max
+		limit(&msl,MAX_SPEED);
+              limit(&msr,MAX_SPEED);    
                   //limit
 //                 	limit(&msl,MAX_SPEED);
 //          	limit(&msr,MAX_SPEED);
@@ -409,9 +425,13 @@ int main(){
 		/*Webots 2018b*/
 		// Set speed
 		msl_w = msl*MAX_SPEED_WEB/1000;
-		msr_w = msr*MAX_SPEED_WEB/1000;
+      	       msr_w = msr*MAX_SPEED_WEB/1000;
+		            	//added by Max
+		//limitf(&msl_w, MAX_SPEED_WEB);
+              //limitf(&msr_w, MAX_SPEED_WEB);
+                      
 		wb_motor_set_velocity(left_motor, msl_w);
-                  wb_motor_set_velocity(right_motor, msr_w);
+              wb_motor_set_velocity(right_motor, msr_w);
 		//wb_differential_wheels_set_speed(msl,msr);
 		/*Webots 2018b*/
     

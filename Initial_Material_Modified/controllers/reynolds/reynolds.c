@@ -74,6 +74,10 @@ WbDeviceTag emitter;		// Handle for the emitter node
 
 int robot_id_u, robot_id;	// Unique and normalized (between 0 and FLOCK_SIZE-1), robot ID
 
+float bearing[FLOCK_SIZE];
+float range[FLOCK_SIZE];
+float prev_bearing[FLOCK_SIZE];
+float prev_range[FLOCK_SIZE];
 float loc[FLOCK_SIZE][3];	// X, Z, Theta of all robots
 float prev_loc[FLOCK_SIZE][3];	// Previous X, Z, Theta values
 float speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules
@@ -333,7 +337,8 @@ void initial_pos(void){
 			initialized[rob_nb] = 1; 		// initialized = true
 		}		
 		wb_receiver_next_packet(receiver);
-	}	
+	}
+	printf("robots %d initialisé\n",robot_id);	
 }
 
 /*
@@ -455,6 +460,9 @@ int main(){
                // reduce wheel speed (that is reynolds and migratory weights when a signal is detected
               msl /= (sum_sensors>300?sum_sensors:300)/300;
               msr /= (sum_sensors>300?sum_sensors:300)/300;
+              if (sum_sensors>300) {
+              printf("Robot %d has detected something... %d\n",robot_id, sum_sensors);
+              }
               
 		// Add Braitenberg
 		msl += BRAITENBERG_WEIGHT*bmsl;
