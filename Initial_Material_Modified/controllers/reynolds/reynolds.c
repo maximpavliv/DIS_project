@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-
+#include <stdlib.h>
 #include <webots/robot.h>
 /*Webots 2018b*/
 #include <webots/motor.h>
@@ -28,7 +28,7 @@
 #define MAX_SENS          4096    // Maximum sensibility value
 #define MAX_SPEED         1000     // Maximum speed (CHANGED (ORIGINALY 800))
 /*Webots 2018b*/
-#define MAX_SPEED_WEB      6.28    // Maximum speed webots
+#define MAX_SPEED_WEB      6.27    // Maximum speed webots
 /*Webots 2018b*/
 #define FLOCK_SIZE	  5	  // Size of flock
 #define TIME_STEP	  64	  // [ms] Length of time step
@@ -39,15 +39,15 @@
 #define DELTA_T			0.064	// Timestep (seconds)
 
 
-#define RULE1_THRESHOLD     0.20   // Threshold to activate aggregation rule. default 0.20
-#define RULE1_WEIGHT        (0.6/10)	   // Weight of aggregation rule. default 0.6/10
+#define RULE1_THRESHOLD     0.1  // Threshold to activate aggregation rule. default 0.20
+#define RULE1_WEIGHT        (1/10)	   // Weight of aggregation rule. default 0.6/10
 
-#define RULE2_THRESHOLD     0.15   // Threshold to activate dispersion rule. default 0.15
+#define RULE2_THRESHOLD     0.25   // Threshold to activate dispersion rule. default 0.15
 #define RULE2_WEIGHT        (0.02/10)	   // Weight of dispersion rule. default 0.02/10
 
-#define RULE3_WEIGHT        (1.0/10)   // Weight of consistency rule. default 1.0/10
+#define RULE3_WEIGHT        (.8/10)   // Weight of consistency rule. default 1.0/10
 
-#define MIGRATION_WEIGHT    (0.01/10)   // Weight of attraction towards the common goal. default 0.01/10
+#define MIGRATION_WEIGHT    (0.05/10)   // Weight of attraction towards the common goal. default 0.01/10
 
 #define BRAITENBERG_WEIGHT 3
 
@@ -74,10 +74,9 @@ WbDeviceTag emitter;		// Handle for the emitter node
 
 int robot_id_u, robot_id;	// Unique and normalized (between 0 and FLOCK_SIZE-1), robot ID
 
-float bearing[FLOCK_SIZE];
-float range[FLOCK_SIZE];
-float prev_bearing[FLOCK_SIZE];
-float prev_range[FLOCK_SIZE];
+float relative_pos[FLOCK_SIZE][3];	// relative X, Z, Theta of all robots
+float prev_relative_pos[FLOCK_SIZE][3];	// Previous relative  X, Z, Theta values
+float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules
 float loc[FLOCK_SIZE][3];	// X, Z, Theta of all robots
 float prev_loc[FLOCK_SIZE][3];	// Previous X, Z, Theta values
 float speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules
@@ -88,6 +87,51 @@ float migr[2];	                // Migration vector
  * Reset the robot's devices and get its ID
  *
  */
+double gaussianNoise(double mu, double sigma)
+{
+  double U1, U2, W, mult;
+  static double X1, X2;
+  static int call = 0;
+ 
+  if (call == 1)
+    {
+      call = !call;
+      return (mu + sigma * (double) X2);
+    }
+ 
+  do
+    {
+      U1 = -1 + ((double) rand () / RAND_MAX) * 2;
+      U2 = -1 + ((double) rand () / RAND_MAX) * 2;
+      W = pow (U1, 2) + pow (U2, 2);
+    }
+  while (W >= 1 || W == 0);
+ 
+  mult = sqrt ((-2 * log (W)) / W);
+  X1 = U1 * mult;
+  X2 = U2 * mult;
+ 
+  call = !call;
+ 
+  return (mu + sigma * (double) X1);
+}
+
+static void absolute_to_relative(float x, float z, float theta,int robot_nb){
+int i;
+  prev_relative_pos[nb][0] = relative_pos[nb][0];
+  prev_relative_pos[nb][1] = relative_pos[nb][1];
+  prev_relative_pos[nb][2] = relative_pos[nb][2];
+	
+for(i=0; i<FLOCK_SIZE; i++) {
+
+  relative_pos[i][0]=x-loc[i][0]+gaussianNoise(0,0.1);// relative X of all robots
+  relative_pos[i][1]=y-loc[i][1]+gaussianNoise(0,0.1);// relative Z of all robots 
+  relative_pos[i][2]=-loc[i][2]+gaussianNoise(0,0.1);// relative Theta of all robots
+  relative_speed[i][0] = relative_speed[i][0]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[i][0]-prev_relative_pos[i][0]);
+  relative_speed[i][1] = relative_speed[i][1]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[i][1]-prev_relative_pos[i][1]);		
+		
+  }
+}
 static void reset() {
 	wb_robot_init();
 
@@ -132,11 +176,11 @@ static void reset() {
 /*
  * Keep given float number within interval {-limit, limit}
  */
-void limitf(float *number, int limit) {
+void limitf(float *number, double limit) {
 	if (*number > limit)
-		*number = (float)limit;
+		*number = limit;
 	if (*number < -limit)
-		*number = (float)-limit;
+		*number = -limit;
 }
 
 /*
@@ -210,79 +254,59 @@ void compute_wheel_speeds(int *msl, int *msr)
 /*
  * Update speed according to Reynold's rules
  */
-
 void reynolds_rules() {
 	int i, j, k;			// Loop counters
-	float avg_loc[2] = {0,0};	// Flock average positions
-	float avg_speed[2] = {0,0};	// Flock average speeds
+	float rel_avg_loc[2] = {0,0};	// Flock average positions
+	float rel_avg_speed[2] = {0,0};	// Flock average speeds
 	float cohesion[2] = {0,0};
 	float dispersion[2] = {0,0};
 	float consistency[2] = {0,0};
 	
 	/* Compute averages over the whole flock */
-	for(i=0; i<FLOCK_SIZE; i++) {
-		if (i == robot_id) 
-		{	
-			// don't consider yourself for the average 
-			continue;
-		}
-          	for (j=0;j<2;j++) 
-		{
-			avg_speed[j] += speed[i][j];
-			avg_loc[j] += loc[i][j];
-		}
-	}
+	for(i=0;i<FLOCK_SIZE;i++){
+            if (i==robot_id)
+          	continue; // dont consider yourself for average
 	
-        for (j=0;j<2;j++) 
-	{
-          	avg_speed[j] /= FLOCK_SIZE-1;
-          	avg_loc[j] /= FLOCK_SIZE-1;
-
-          	
-        }
+            for (j=0;j<2;j++) {
+              rel_avg_speed[j] += relative_speed[i][j] ;
+              rel_avg_loc[j]   += relative_pos[i][j];
+             }
+  	}
 	
-	/* Reynold's rules */
-	
+            for (j=0;j<2;j++) {
+              rel_avg_speed[j] /= FLOCK_SIZE-1 ;
+              rel_avg_loc[j]   /= FLOCK_SIZE-1;
+            }
 	/* Rule 1 - Aggregation/Cohesion: move towards the center of mass */
-	for (j=0;j<2;j++) {
-		// If center of mass is too far
-		if (sqrt(pow(loc[robot_id][0]-avg_loc[0],2)+pow(loc[robot_id][1]-avg_loc[1],2)) > RULE1_THRESHOLD) 
-		{
-         		cohesion[j] = avg_loc[j] - loc[robot_id][j];   // Relative distance to the center of the swarm
-		}
+    
+        for (j=0;j<2;j++) 
+	{	
+            cohesion[j] = rel_avg_loc[j];
 	}
-	
-  
-  
+
 	/* Rule 2 - Dispersion/Separation: keep far enough from flockmates */
-	for (k=0;k<FLOCK_SIZE;k++) {
-		if (k != robot_id) {        // Loop on flockmates only
-			// If neighbor k is too close (Euclidean distance)
-			if (pow(loc[robot_id][0]-loc[k][0],2)+pow(loc[robot_id][1]-loc[k][1],2) < RULE2_THRESHOLD) 
-			{
-				for (j=0;j<2;j++) 
-				{
-					dispersion[j] += 1/(loc[robot_id][j] -loc[k][j]);	// Relative distance to k
-				}
-			}
-		}
+	for(k=0;k<FLOCK_SIZE;k++){
+           if(k!=robot_id){ //loop on flockmates only
+             //if neighbor k is too close (Euclidean distance )
+                 if (pow(relative_pos[k][0],2)+pow(relative_pos[k][1],2)<RULE2_THRESHOLD){
+                     for (j=0;j<2;j++) {
+          	   dispersion[j] -= 1/(1+relative_pos[k][j]); //relative distance to k 
+              	   }
+                 }
+             }
+	
 	}
+
   
 	/* Rule 3 - Consistency/Alignment: match the speeds of flockmates */
-	// NO THIRD RULE, BECAUSE IN REAL LIFE WE WONT KNOW THE ORIENTATION OF THE OTHERS
-        consistency[0] = 0;
-        consistency[1] = 0;
-        /* add code for consistency[j]*/
-        for (j=0;j<2;j++) 
-        {
-            consistency[j] = 0; 
-        }
-  
-        // aggregation of all behaviors with relative influence determined by weights
-        // printf("id = %d, cx = %f, cy = %f\n", robot_id, cohesion[0], cohesion[1]);
-        for (j=0;j<2;j++) 
+	for (j=0;j<2;j++) {
+		consistency[j] = rel_avg_speed[j];
+         }
+
+         //aggregation of all behaviors with relative influence determined by weights
+         for (j=0;j<2;j++) 
 	{
-                 speed[robot_id][j] = cohesion[j] * RULE1_WEIGHT;
+                 speed[robot_id][j] =  cohesion[j] * RULE1_WEIGHT;
                  speed[robot_id][j] +=  dispersion[j] * RULE2_WEIGHT;
                  speed[robot_id][j] +=  consistency[j] * RULE3_WEIGHT;
          }
@@ -301,6 +325,11 @@ void reynolds_rules() {
               loc[robot_id][1]); //y axis of webots is inverted
         }
 }
+
+
+
+ 
+        //move the robot according to some migration rul
 
 /*
  * Initialize robot's position
@@ -337,8 +366,7 @@ void initial_pos(void){
 			initialized[rob_nb] = 1; 		// initialized = true
 		}		
 		wb_receiver_next_packet(receiver);
-	}
-	printf("robots %d initialisé\n",robot_id);	
+	}	
 }
 
 /*
@@ -379,8 +407,8 @@ int main(){
                             max_sens = max_sens>distances[i]?max_sens:distances[i]; // Check if new highest sensor value
                             
 			    // Weighted sum of distance sensor values for Braitenberg vehicle
-                            bmsr += e_puck_matrix[i] * distances[i];
-                            bmsl += e_puck_matrix[i+NB_SENSORS] * distances[i];
+                            bmsr += e_puck_matrix[i] * pow(distances[i],3/2);
+                            bmsl += e_puck_matrix[i+NB_SENSORS] * pow(distances[i],3/2);
                 }
                 
 		// Adapt Braitenberg values (empirical tests)
@@ -409,7 +437,8 @@ int main(){
 			rob_nb %= FLOCK_SIZE;
 			if (initialized[rob_nb] == 0) {
 				// Get initial positions
-				loc[rob_nb][0] = rob_x; //x-position
+				 absolute_to_relative(rob_x, rob_z, rob_theta, robot_nb);
+                  		loc[rob_nb][0] = rob_x; //x-position
 				loc[rob_nb][1] = rob_z; //z-position
 				loc[rob_nb][2] = rob_theta; //theta
 				prev_loc[rob_nb][0] = loc[rob_nb][0];
@@ -441,7 +470,9 @@ int main(){
 		
 		speed[robot_id][0] = (1/DELTA_T)*(loc[robot_id][0]-prev_loc[robot_id][0]);
 		speed[robot_id][1] = (1/DELTA_T)*(loc[robot_id][1]-prev_loc[robot_id][1]);
-    
+              
+              absolute_to_relative();
+              
 		// Reynold's rules with all previous info (updates the speed[][] table)
 		reynolds_rules();
 		// printf("%f %f\n", speed[robot_id][0], speed[robot_id][1]);
@@ -460,9 +491,6 @@ int main(){
                // reduce wheel speed (that is reynolds and migratory weights when a signal is detected
               msl /= (sum_sensors>300?sum_sensors:300)/300;
               msr /= (sum_sensors>300?sum_sensors:300)/300;
-              if (sum_sensors>300) {
-              printf("Robot %d has detected something... %d\n",robot_id, sum_sensors);
-              }
               
 		// Add Braitenberg
 		msl += BRAITENBERG_WEIGHT*bmsl;

@@ -41,13 +41,13 @@
 #define RULE1_THRESHOLD     0.2 // Threshold to activate aggregation rule. default 0.20
 #define RULE1_WEIGHT        (0.6/10)	   // Weight of aggregation rule. default 0.6/10
 
-#define RULE2_THRESHOLD     0.15  // Threshold to activate dispersion rule. default 0.15
+#define RULE2_THRESHOLD     0.2  // Threshold to activate dispersion rule. default 0.15
 #define RULE2_WEIGHT        (0.02/10)	   // Weight of dispersion rule. default 0.02/10
 
-#define RULE3_WEIGHT        (1./10)   // Weight of consistency rule. default 1.0/10
+#define RULE3_WEIGHT        (.0/10)   // Weight of consistency rule. default 1.0/10
 #define MIGRATION_WEIGHT    (0.05/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
-#define BRT_WEIGHT           5
+#define BRT_WEIGHT           6
 #define MIGRATORY_URGE 1 // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
@@ -184,7 +184,7 @@ void compute_wheel_speeds(int *msl, int *msr)
 	
 	float x = speed[robot_id][0]*cosf(my_position[2]) + speed[robot_id][1]*sinf(my_position[2]); // x in robot coordinates
 	float z = -speed[robot_id][0]*sinf(my_position[2]) + speed[robot_id][1]*cosf(my_position[2]); // z in robot coordinates
-	printf("id = %d, x = %f, y = %f\n", robot_id, x, z);
+	//printf("id = %d, x = %f, y = %f\n", robot_id, x, z);
 	float Ku = 0.2;   // Forward control coefficient 0.2
 	float Kw = 1;  // Rotational control coefficient 1
 	float range = sqrtf(x*x + z*z);	  // Distance to the wanted position
@@ -352,7 +352,7 @@ int main(){
 	
 	// Forever
 	for(int step=0;step<2000;step++){
-            printf("step %d /n",step);
+           // printf("step %d /n",step);
 
 		bmsl = 0; bmsr = 0;
                 sum_sensors = 0;
@@ -405,14 +405,14 @@ int main(){
               //limit(&msr,MAX_SPEED-200); 
               if (ABS(msl)>MAX_SPEED || ABS(msr)>MAX_SPEED)
               {
-                  msl/=20;
-                  msr/=20;
+                  msl/=10;
+                  msr/=10;
               }
 		
-		printf("robot %d: msl and msr before braitenberg: value (%d,%d)\n",robot_id,msl,msr);
+		//printf("robot %d: msl and msr before braitenberg: value (%d,%d)\n",robot_id,msl,msr);
 		msl+= BRT_WEIGHT * bmsl;
 		msr += BRT_WEIGHT * bmsr;
-		printf("robot %d:msl and msr after braitenberg: value (%d,%d)\n",robot_id,msl,msr);
+		//printf("robot %d:msl and msr after braitenberg: value (%d,%d)\n",robot_id,msl,msr);
 		
                   
               		//added by Max

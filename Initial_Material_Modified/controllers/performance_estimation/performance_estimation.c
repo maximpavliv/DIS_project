@@ -1,3 +1,12 @@
+/*****************************************************************************/
+/* File:         performance_estimation.c                                    */
+/* Version:      1.0                                                         */
+/* Date:         10-Oct-14                                                   */
+/* Description:  estimating the performance of a formation 		     */
+/*                                                                           */
+/* Author: 	 10-Oct-14 by Ali marjovi				     */
+/*****************************************************************************/
+
 
 #include <stdio.h>
 #include <math.h>
@@ -15,7 +24,6 @@
 WbNodeRef robs[FLOCK_SIZE];		// Robots nodes
 WbFieldRef robs_trans[FLOCK_SIZE];	// Robots translation fields
 WbFieldRef robs_rotation[FLOCK_SIZE];	// Robots rotation fields
-WbDeviceTag emitter;			// Single emitter
 
 float loc[FLOCK_SIZE][3];		// Location of everybody in the flock
 
@@ -35,9 +43,6 @@ int t;
 void reset(void) {
 	wb_robot_init();
 
-	emitter = wb_robot_get_device("emitter");
-	if (emitter==0) printf("missing emitter\n");
-	
 	char rob[7] = "epuck0";
 	int i;
 	for (i=0;i<FLOCK_SIZE;i++) {
@@ -48,26 +53,6 @@ void reset(void) {
 	}
 }
 
-
-void send_init_poses(void)
-{
-  	char buffer[255];	// Buffer for sending data
-         int i;
-         
-         for (i=0;i<FLOCK_SIZE;i++) {
-		// Get data
-		loc[i][0] = wb_supervisor_field_get_sf_vec3f(robs_trans[i])[0]; // X
-		loc[i][1] = wb_supervisor_field_get_sf_vec3f(robs_trans[i])[2]; // Z
-		loc[i][2] = wb_supervisor_field_get_sf_rotation(robs_rotation[i])[3]; // THETA
-
-		// Send it out
-		sprintf(buffer,"%1d#%f#%f#%f##%f#%f",i+offset,loc[i][0],loc[i][1],loc[i][2], migrx, migrz);
-		wb_emitter_send(emitter,buffer,strlen(buffer));
-
-		// Run one step
-		wb_robot_step(TIME_STEP);
-	}
-}
 
 /*
  * Compute performance metric.
@@ -101,33 +86,16 @@ void compute_fitness(float* fit_c, float* fit_o) {
  */
  
 int main(int argc, char *args[]) {
-	char buffer[255];	// Buffer for sending data
 	int i;			// Index
   
-	if (argc == 4) { // Get parameters
-		offset = atoi(args[1]);
-		migrx = atof(args[2]);
-		migrz = atof(args[3]);
-		//migration goal point comes from the controller arguments. It is defined in the world-file, under "controllerArgs" of the supervisor.
-		printf("Migratory instinct : (%f, %f)\n", migrx, migrz);
-	} else {
-		printf("Missing argument\n");
-		return 1;
-	}
-	
-	orient_migr = -atan2f(migrx,migrz);
-	if (orient_migr<0) {
-		orient_migr+=2*M_PI; // Keep value within 0, 2pi
-	}
-
 	reset();
 
-         send_init_poses();
 	
 	// Compute reference fitness values
 	
 	float fit_cluster;			// Performance metric for aggregation
 	float fit_orient;			// Performance metric for orientation
+	float fit_velocity=0;			// Performance metric for velocity
 		
 	for(;;) {
 		wb_robot_step(TIME_STEP);
@@ -138,16 +106,13 @@ int main(int argc, char *args[]) {
 				loc[i][0] = wb_supervisor_field_get_sf_vec3f(robs_trans[i])[0]; // X
 				loc[i][1] = wb_supervisor_field_get_sf_vec3f(robs_trans[i])[2]; // Z
 				loc[i][2] = wb_supervisor_field_get_sf_rotation(robs_rotation[i])[3]; // THETA
-				//printf("loc %f\n",loc[i][0]);
-                    		// Sending positions to the robots, comment the following two lines if you don't want the supervisor sending it                   		
-                  		sprintf(buffer,"%1d#%f#%f#%f##%f#%f",i+offset,loc[i][0],loc[i][1],loc[i][2], migrx, migrz);
-                  		wb_emitter_send(emitter,buffer,strlen(buffer));				
+				
     			}
 			//Compute and normalize fitness values
 			compute_fitness(&fit_cluster, &fit_orient);
 			fit_cluster = fit_cluster_ref/fit_cluster;
 			fit_orient = 1-fit_orient/M_PI;
-			printf("time:%d, Topology Performance: %f\n", t, fit_cluster);			
+			printf("time:%d, Distance : %f,Orientation: %f,Velocity: %f, \n", t, fit_cluster, fit_orient,fit_velocity);			
 			
 		}
 		

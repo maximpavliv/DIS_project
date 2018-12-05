@@ -11,6 +11,9 @@ Viewpoint {
   orientation -0.993798476990559 -0.10611081900067626 -0.03324276195280829 1.0931185525288967
   position -1.5983934762389358 5.356578980628403 3.1079877777408824
 }
+Supervisor {
+  controller "performance_estimation"
+}
 PointLight {
   intensity 0.5
   location -1.06 0.58 -0.55
