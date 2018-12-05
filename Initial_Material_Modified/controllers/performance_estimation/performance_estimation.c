@@ -83,17 +83,19 @@ void compute_fitness(float* fit_c, float* fit_o) {
           }
           
 	for (i=0;i<FLOCK_SIZE;i++) {
-          for (j=i+1;j<FLOCK_SIZE;j++) 
-		{	
+         // for (j=i+1;j<FLOCK_SIZE;j++) 
+		//{	
 			// Distance measure for each pair ob robots
-			*fit_c += fabs(sqrtf(powf(loc[i][0]-loc[j][0],2)+powf(loc[i][1]-loc[j][1],2))-RULE1_THRESHOLD*2);
-		}
+			//*fit_c += fabs(sqrtf(powf(loc[i][0]-loc[j][0],2)+powf(loc[i][1]-loc[j][1],2))-RULE1_THRESHOLD*2);
+		//}
+		*fit_c += fabs(sqrtf(powf(loc[i][0]-avg_loc[0],2)+powf(loc[i][1]-avg_loc[1],2)));
 
 		// Angle measure for each robot
 		angle_diff = fabsf(loc[i][2]-orient_migr);
 		*fit_o += angle_diff > M_PI ? 2*M_PI-angle_diff : angle_diff;
 	}
-	*fit_c /= FLOCK_SIZE*(FLOCK_SIZE+1)/2;
+	//*fit_c /= FLOCK_SIZE*(FLOCK_SIZE+1)/2;
+	*fit_c /= FLOCK_SIZE;
 	*fit_o /= FLOCK_SIZE;
 }
 
@@ -130,7 +132,8 @@ int main(int argc, char *args[]) {
     			}
 			//Compute and normalize fitness values
 			compute_fitness(&fit_cluster, &fit_orient);
-			fit_cluster = fit_cluster_ref/fit_cluster;
+			//fit_cluster = fit_cluster_ref/fit_cluster;
+			fit_cluster = 1/(1+fit_cluster);
 			fit_orient = 1-fit_orient/M_PI;
 			fit_velocity=1;
 			inst_overall=fit_cluster*fit_orient*fit_velocity;	       
