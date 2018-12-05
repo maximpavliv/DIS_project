@@ -20,6 +20,7 @@
 
 #define FLOCK_SIZE	5		// Number of robots in flock
 #define TIME_STEP	64		// [ms] Length of time step
+#define MAX_SPEED    0.1287         // in m/s
 
 WbNodeRef robs[FLOCK_SIZE];		// Robots nodes
 WbFieldRef robs_trans[FLOCK_SIZE];	// Robots translation fields
@@ -27,7 +28,7 @@ WbFieldRef robs_rotation[FLOCK_SIZE];	// Robots rotation fields
 
 float loc[FLOCK_SIZE][3];		// Location of everybody in the flock
 
-#define RULE1_THRESHOLD 0.2
+#define RULE1_THRESHOLD 0.1
 #define fit_cluster_ref 0.03
 #define fit_orient_ref 1.0
 
@@ -64,8 +65,25 @@ void compute_fitness(float* fit_c, float* fit_o) {
 	// the migration goal
 	float angle_diff;
 	int i; int j;
+	float avg_loc[2] = {0,0};	// Flock average positions
+       
+       //float avg_speed[2] = {0,0};	// Flock average speeds
+       
+	for(i=0;i<FLOCK_SIZE;i++){
+
+       for (j=0;j<2;j++) {
+            //avg_speed[j] += speed[i][j] ;
+            avg_loc[j]   += loc[i][j];
+           }
+  	}
+	
+       for (j=0;j<2;j++) {
+            //avg_speed[j] /= FLOCK_SIZE-1 ;
+            avg_loc[j]   /= FLOCK_SIZE;
+          }
+          
 	for (i=0;i<FLOCK_SIZE;i++) {
-		for (j=i+1;j<FLOCK_SIZE;j++) 
+          for (j=i+1;j<FLOCK_SIZE;j++) 
 		{	
 			// Distance measure for each pair ob robots
 			*fit_c += fabs(sqrtf(powf(loc[i][0]-loc[j][0],2)+powf(loc[i][1]-loc[j][1],2))-RULE1_THRESHOLD*2);
@@ -96,6 +114,8 @@ int main(int argc, char *args[]) {
 	float fit_cluster;			// Performance metric for aggregation
 	float fit_orient;			// Performance metric for orientation
 	float fit_velocity=0;			// Performance metric for velocity
+	float inst_overall=0;	       // Instant Overall Performance metric 
+	float fin_overall=0;	       // Final Overall Performance metric 	
 		
 	for(;;) {
 		wb_robot_step(TIME_STEP);
@@ -112,7 +132,10 @@ int main(int argc, char *args[]) {
 			compute_fitness(&fit_cluster, &fit_orient);
 			fit_cluster = fit_cluster_ref/fit_cluster;
 			fit_orient = 1-fit_orient/M_PI;
-			printf("time:%d, Distance : %f,Orientation: %f,Velocity: %f, \n", t, fit_cluster, fit_orient,fit_velocity);			
+			fit_velocity=1;
+			inst_overall=fit_cluster*fit_orient*fit_velocity;	       
+        	       fin_overall+=inst_overall/(t+1);	   
+			printf("time:%d, Distance : %f,Orientation: %f,Velocity: %f,Instant overall:%f,Final overall:%f \n", t, fit_cluster, fit_orient,fit_velocity,inst_overall,fin_overall);			
 			
 		}
 		
