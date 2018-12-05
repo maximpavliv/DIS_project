@@ -147,6 +147,49 @@ void limit(int *number, int limit) {
 		*number = -limit;
 }
 
+
+void limit_duo_proportional(int *number_1, int *number_2, int limit) {
+
+        float number_1_abs = (float) ABS(*number_1);
+        float number_2_abs = (float) ABS(*number_2);
+        float limited_1 = 0;
+        float limited_2 = 0;
+
+        if(number_1_abs > (float)limit || number_2_abs > (float)limit)
+        {
+                  if(number_1_abs > number_2_abs)
+                  {
+                        limited_1 = ((float)*number_1)*limit/number_1_abs;
+                        limited_2 = ((float)*number_2)*limit/number_1_abs;
+                  }
+                  else
+                  {
+                        limited_1 = ((float)*number_1)*limit/number_2_abs;
+                        limited_2 = ((float)*number_2)*limit/number_2_abs;
+                  }
+                  *number_1 = limited_1;
+                  *number_2 = limited_2;
+        }
+        
+
+
+
+/*
+	if (*number_1 > limit)
+		*number_1 = limit;
+	if (*number_1 < -limit)
+		*number_1 = -limit;
+
+	if (*number_2 > limit)
+		*number_2 = limit;
+	if (*number_2 < -limit)
+		*number_2 = -limit;
+*/
+        
+}
+
+
+
 /*
  * Updates robot position with wheel speeds
  */
@@ -401,13 +444,6 @@ int main(){
 		}
     
 		// Add Braitenberg
-      	       	//limit(&msl,MAX_SPEED-200);
-              //limit(&msr,MAX_SPEED-200); 
-              if (ABS(msl)>MAX_SPEED || ABS(msr)>MAX_SPEED)
-              {
-                  msl/=10;
-                  msr/=10;
-              }
 		
 		//printf("robot %d: msl and msr before braitenberg: value (%d,%d)\n",robot_id,msl,msr);
 		msl+= BRT_WEIGHT * bmsl;
@@ -415,20 +451,12 @@ int main(){
 		//printf("robot %d:msl and msr after braitenberg: value (%d,%d)\n",robot_id,msl,msr);
 		
                   
-              		//added by Max
-		limit(&msl,MAX_SPEED);
-              limit(&msr,MAX_SPEED);    
-                  //limit
-//                 	limit(&msl,MAX_SPEED);
-//          	limit(&msr,MAX_SPEED);
+         		limit_duo_proportional(&msl, &msr, MAX_SPEED);
                   
 		/*Webots 2018b*/
 		// Set speed
 		msl_w = msl*MAX_SPEED_WEB/1000;
       	       msr_w = msr*MAX_SPEED_WEB/1000;
-		            	//added by Max
-		//limitf(&msl_w, MAX_SPEED_WEB);
-              //limitf(&msr_w, MAX_SPEED_WEB);
                       
 		wb_motor_set_velocity(left_motor, msl_w);
               wb_motor_set_velocity(right_motor, msr_w);
