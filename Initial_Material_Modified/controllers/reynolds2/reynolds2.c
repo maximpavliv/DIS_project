@@ -27,7 +27,7 @@
 #define MAX_SENS          4096    // Maximum sensibility value
 #define MAX_SPEED         1000     // Maximum speed
 /*Webots 2018b*/
-#define MAX_SPEED_WEB      6.25    // Maximum speed webots
+#define MAX_SPEED_WEB      6.27    // Maximum speed webots
 /*Webots 2018b*/
 #define FLOCK_SIZE	  5	  // Size of flock
 #define TIME_STEP	  64	  // [ms] Length of time step
@@ -38,13 +38,13 @@
 #define DELTA_T			0.064	// Timestep (seconds)
 
 
-#define RULE1_THRESHOLD     0.2 // Threshold to activate aggregation rule. default 0.20
+#define RULE1_THRESHOLD     0.3 // Threshold to activate aggregation rule. default 0.20
 #define RULE1_WEIGHT        (0.6/10)	   // Weight of aggregation rule. default 0.6/10
 
-#define RULE2_THRESHOLD     0.2  // Threshold to activate dispersion rule. default 0.15
+#define RULE2_THRESHOLD     0.15  // Threshold to activate dispersion rule. default 0.15
 #define RULE2_WEIGHT        (0.02/10)	   // Weight of dispersion rule. default 0.02/10
 
-#define RULE3_WEIGHT        (.0/10)   // Weight of consistency rule. default 1.0/10
+#define RULE3_WEIGHT        (.05/10)   // Weight of consistency rule. default 1.0/10
 #define MIGRATION_WEIGHT    (0.05/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
 #define BRT_WEIGHT           6
