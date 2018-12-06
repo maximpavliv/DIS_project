@@ -52,6 +52,9 @@
 
 #define ABS(x) ((x>=0)?(x):-(x))
 
+#define TRIBE_A 1  //from 0 to 4
+#define TRIBE_B 2  // from 5 to 9
+
 /*Webots 2018b*/
 WbDeviceTag left_motor; //handler for left wheel of the robot
 WbDeviceTag right_motor; //handler for the right wheel of the robot
@@ -66,19 +69,22 @@ WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
 WbDeviceTag receiver;		// Handle for the receiver node
 WbDeviceTag emitter;		// Handle for the emitter node
 
-int robot_id_u, robot_id;	// Unique and normalized (between 0 and FLOCK_SIZE-1) robot ID
+int robot_id_u, robot_id;	// Unique robot ID
 
-float relative_pos[FLOCK_SIZE][3];	// relative X, Z, Theta of all robots
-float prev_relative_pos[FLOCK_SIZE][3];	// Previous relative  X, Z, Theta values
+float relative_pos[FLOCK_SIZE][3];	// relative X, Z, Theta of all robots of our tribe
+float prev_relative_pos[FLOCK_SIZE][3];	// Previous relative  X, Z, Theta values of our tribe
 float my_position[3];     		// X, Z, Theta of the current robot
 float prev_my_position[3];  		// X, Z, Theta of the current robot in the previous time step
-float speed[FLOCK_SIZE][2];		// Speeds calculated with Reynold's rules
-float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules
-int initialized[FLOCK_SIZE];		// != 0 if initial positions have been received
-float migr[2] = {0,-10};	        // Migration vector
+float speed[FLOCK_SIZE][2];		// Speeds calculated with Reynold's rules of our tribe
+float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules of our tribe
+//int initialized[FLOCK_SIZE];		// != 0 if initial positions have been received of our tribe
+float migr_A[2] = {0,-10};	        // Migration vector
+float migr_B[2] = {0,10};	        // Migration vector
 char* robot_name;
 
 float theta_robots[FLOCK_SIZE];
+
+int my_tribe;
 
 /*
  * Reset the robot's devices and get its ID
@@ -115,17 +121,21 @@ static void reset()
 
 	//Reading the robot's name. Pay attention to name specification when adding robots to the simulation!
 	sscanf(robot_name,"epuck%d",&robot_id_u); // read robot id from the robot's name
-	robot_id = robot_id_u%FLOCK_SIZE;	  // normalize between 0 and FLOCK_SIZE-1
+	robot_id = robot_id_u;	  // No normalization
+	if(robot_id < 5)
+               my_tribe = TRIBE_A;
+           else
+               my_tribe = TRIBE_B;
+               
   
-	for(i=0; i<FLOCK_SIZE; i++) 
+/*	for(i=0; i<FLOCK_SIZE; i++) 
 	{
 		initialized[i] = 0;		  // Set initialization to 0 (= not yet initialized)
 	}
+*/	
   
-        printf("Reset: robot %d\n",robot_id_u);
+        printf("Reset: robot %d, tribe %d\n",robot_id_u, my_tribe);
         
-        migr[0] =0;
-        migr[1] = -10;
 }
 /*
  * Keep given float number within interval {-limit, limit}
@@ -169,23 +179,7 @@ void limit_duo_proportional(int *number_1, int *number_2, int limit) {
                   }
                   *number_1 = limited_1;
                   *number_2 = limited_2;
-        }
-        
-
-
-
-/*
-	if (*number_1 > limit)
-		*number_1 = limit;
-	if (*number_1 < -limit)
-		*number_1 = -limit;
-
-	if (*number_2 > limit)
-		*number_2 = limit;
-	if (*number_2 < -limit)
-		*number_2 = -limit;
-*/
-        
+        }        
 }
 
 
@@ -293,8 +287,7 @@ void reynolds_rules() {
              }
 	
 	}
-
-  
+	
 	/* Rule 3 - Consistency/Alignment: match the speeds of flockmates */
 	for (j=0;j<2;j++) {
 		consistency[j] = rel_avg_speed[j];
@@ -309,14 +302,24 @@ void reynolds_rules() {
          }
         speed[robot_id][1] *= -1; //y axis of webots is inverted
         
+        
+        
         //move the robot according to some migration rule
         if(MIGRATORY_URGE == 0){
           speed[robot_id][0] += 0.01*cos(my_position[2] + M_PI/2);
           speed[robot_id][1] += 0.01*sin(my_position[2] + M_PI/2);
         }
         else {
-            speed[robot_id][0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT;
-            speed[robot_id][1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT; //y axis of webots is inverted
+            if(my_tribe == TRIBE_A)
+            {
+              speed[robot_id][0] += (migr_A[0]-my_position[0]) * MIGRATION_WEIGHT;
+              speed[robot_id][1] -= (migr_A[1]-my_position[1]) * MIGRATION_WEIGHT; //y axis of webots is inverted
+            }
+            else if (my_tribe == TRIBE_B)
+            {
+              speed[robot_id][0] += (migr_B[0]-my_position[0]) * MIGRATION_WEIGHT;
+              speed[robot_id][1] -= (migr_B[1]-my_position[1]) * MIGRATION_WEIGHT; //y axis of webots is inverted
+            }
         }
 }
 
@@ -351,26 +354,28 @@ void process_received_ping_messages(void)
 		double y = message_direction[2];
 		double x = message_direction[0];
 
-                theta =	-atan2(y,x);
-                theta = theta + my_position[2]; // find the relative theta;
-		range = sqrt((1/message_rssi));
-		
-
 		other_robot_id = (int)(inbuffer[5]-'0');  // since the name of the sender is in the received message. Note: this does not work for robots having id bigger than 9!
-		
-		// Get position update
-		//theta += dtheta_g[other_robot_id];
-		//theta_robots[other_robot_id] = 0.8*theta_robots[other_robot_id] + 0.2*theta;
-		prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
-		prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
-
-		relative_pos[other_robot_id][0] = range*cos(theta);  // relative x pos
-		relative_pos[other_robot_id][1] = -1.0 * range*sin(theta);   // relative y pos
-
-		//printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my theta %g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x)*180.0/3.141592,my_position[2]*180.0/3.141592);
-		
-		relative_speed[other_robot_id][0] = relative_speed[other_robot_id][0]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0]);
-		relative_speed[other_robot_id][1] = relative_speed[other_robot_id][1]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1]);		
+                      
+                      if(((other_robot_id<5) && my_tribe==TRIBE_A) || ((other_robot_id>=5) && my_tribe==TRIBE_B))
+                      {
+                          theta = -atan2(y,x);
+                          theta = theta + my_position[2]; // find the relative theta;
+            	    range = sqrt((1/message_rssi));
+    		
+            	    // Get position update 
+    		    //theta += dtheta_g[other_robot_id];
+    		    //theta_robots[other_robot_id] = 0.8*theta_robots[other_robot_id] + 0.2*theta;
+    		    prev_relative_pos[other_robot_id%FLOCK_SIZE][0] = relative_pos[other_robot_id%FLOCK_SIZE][0];
+    		    prev_relative_pos[other_robot_id%FLOCK_SIZE][1] = relative_pos[other_robot_id%FLOCK_SIZE][1];
+    
+    		    relative_pos[other_robot_id%FLOCK_SIZE][0] = range*cos(theta);  // relative x pos
+    		    relative_pos[other_robot_id%FLOCK_SIZE][1] = -1.0 * range*sin(theta);   // relative y pos
+    
+    		    //printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my theta %g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x)*180.0/3.141592,my_position[2]*180.0/3.141592);
+    		
+        		    relative_speed[other_robot_id%FLOCK_SIZE][0] = relative_speed[other_robot_id%FLOCK_SIZE][0]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id%FLOCK_SIZE][0]-prev_relative_pos[other_robot_id%FLOCK_SIZE][0]);
+        		    relative_speed[other_robot_id%FLOCK_SIZE][1] = relative_speed[other_robot_id%FLOCK_SIZE][1]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id%FLOCK_SIZE][1]-prev_relative_pos[other_robot_id%FLOCK_SIZE][1]);		
+    		 }
 		 
 		wb_receiver_next_packet(receiver);
 	}
