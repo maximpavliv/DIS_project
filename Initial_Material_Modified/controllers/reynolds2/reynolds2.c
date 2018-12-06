@@ -38,16 +38,16 @@
 #define DELTA_T			0.064	// Timestep (seconds)
 
 
-#define RULE1_THRESHOLD     0.3 // Threshold to activate aggregation rule. default 0.20
+#define RULE1_THRESHOLD     0.2 // Threshold to activate aggregation rule. default 0.20
 #define RULE1_WEIGHT        (0.7/10)	   // Weight of aggregation rule. default 0.6/10
 
-#define RULE2_THRESHOLD     0.15  // Threshold to activate dispersion rule. default 0.15
+#define RULE2_THRESHOLD     0.1  // Threshold to activate dispersion rule. default 0.15
 #define RULE2_WEIGHT        (0.02/10)	   // Weight of dispersion rule. default 0.02/10
 
-#define RULE3_WEIGHT        (.05/10)   // Weight of consistency rule. default 1.0/10
+#define RULE3_WEIGHT        (0.05/10)   // Weight of consistency rule. default 1.0/10
 #define MIGRATION_WEIGHT    (0.05/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
-#define BRT_WEIGHT           6
+#define BRT_WEIGHT           10
 #define MIGRATORY_URGE 1 // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
@@ -78,8 +78,7 @@ float prev_my_position[3];  		// X, Z, Theta of the current robot in the previou
 float speed[FLOCK_SIZE][2];		// Speeds calculated with Reynold's rules of our tribe
 float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules of our tribe
 //int initialized[FLOCK_SIZE];		// != 0 if initial positions have been received of our tribe
-float migr_A[2] = {0,-10};	        // Migration vector
-float migr_B[2] = {0,10};	        // Migration vector
+float migr[2] = {0,-10};	        // Migration vector
 char* robot_name;
 
 float theta_robots[FLOCK_SIZE];
@@ -132,9 +131,11 @@ static void reset()
 		initialized[i] = 0;		  // Set initialization to 0 (= not yet initialized)
 	}
 */	
-  
+
+
         printf("Reset: robot %d, tribe %d\n",robot_id, my_tribe);
-        
+
+
 }
 /*
  * Keep given float number within interval {-limit, limit}
@@ -209,7 +210,6 @@ void update_self_motion(int msl, int msr) {
 	if (my_position[2] < 0) my_position[2] += 2.0*M_PI;
 	
 	
-//	printf("robot %d position: %f %f %f", robot_id, my_position[0], my_position[1], my_position[2]);
 }
 
 /*
@@ -312,16 +312,8 @@ void reynolds_rules() {
           speed[robot_id][1] += 0.01*sin(my_position[2] + M_PI/2);
         }
         else {
-            if(my_tribe == TRIBE_A)
-            {
-              speed[robot_id][0] += (migr_A[0]-my_position[0]) * MIGRATION_WEIGHT;
-              speed[robot_id][1] -= (migr_A[1]-my_position[1]) * MIGRATION_WEIGHT; //y axis of webots is inverted
-            }
-            else if (my_tribe == TRIBE_B)
-            {
-              speed[robot_id][0] += (migr_B[0]-my_position[0]) * MIGRATION_WEIGHT;
-              speed[robot_id][1] -= (migr_B[1]-my_position[1]) * MIGRATION_WEIGHT; //y axis of webots is inverted
-            }
+              speed[robot_id][0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT;
+              speed[robot_id][1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT; //y axis of webots is inverted
         }
 }
 
@@ -432,6 +424,7 @@ int main(){
 		prev_my_position[1] = my_position[1];
 		
 		update_self_motion(msl,msr);
+//		printf("robot %d position: %f %f %f \n", robot_id, my_position[0], my_position[1], my_position[2]);
 		
 		process_received_ping_messages();
 
