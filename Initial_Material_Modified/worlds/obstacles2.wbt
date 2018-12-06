@@ -9,7 +9,7 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.993798476990559 -0.10611081900067626 -0.03324276195280829 1.0931185525288967
-  position -1.5983934762389358 5.356578980628403 3.1079877777408824
+  position -1.792046017654025 7.598908449347198 4.274998629968738
 }
 Supervisor {
   controller "performance_estimation"
@@ -153,7 +153,7 @@ DEF long_rock_6 Solid {
   }
 }
 DEF rock Solid {
-  translation -0.267548 0 -0.22167
+  translation -0.23172464853046426 4.440892098500626e-15 -0.3504211216192865
   rotation 0 1 0 5.02662
   children [
     Shape {
@@ -178,7 +178,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation -1.38774 0 -1.06532
+  translation -1.7656945246583828 4.618527782440651e-14 0.2326303509195693
   rotation 0 -1 0 2.05704
   children [
     Shape {
@@ -203,7 +203,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation 1.25364 0 0.47529
+  translation -0.5229861308283403 -2.5135449277513544e-13 0.2385057769307588
   rotation 0 -1 0 2.05704
   children [
     Shape {
@@ -228,7 +228,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation -1.53541 0 0.16115
+  translation -1.5090188892472158 -2.6645352591003757e-15 -0.18199934254616412
   rotation 0 -1 0 2.05704
   children [
     Shape {
@@ -253,7 +253,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation -1.34035 0 0.776227
+  translation -1.1328840720227813 2.6645352591003757e-15 -0.4357164027924747
   rotation 0 -1 0 2.05704
   children [
     Shape {
@@ -303,7 +303,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation 1.09992 0 -1.32743
+  translation -0.6861187609953676 -8.881784197001252e-15 -0.13735508350667835
   rotation 0 -1 0 2.05704
   children [
     Shape {
@@ -328,7 +328,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation -0.105938 -1.77636e-15 -1.3463
+  translation 0.9891141939146701 1.7319478868092468e-13 0.053531329668819794
   children [
     Shape {
       appearance Appearance {
@@ -352,7 +352,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation 0.931062 0 1.31682
+  translation -1.890929382239793 2.6645352591003757e-15 -0.04247454279745444
   rotation 0 -1 0 0.325642
   children [
     Shape {
@@ -377,7 +377,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation -0.0855468 0 0.846635
+  translation -0.12847718886791437 2.6645352591003757e-15 0.12986143619602863
   children [
     Shape {
       appearance Appearance {
@@ -401,7 +401,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation 1.91494 0 0.107609
+  translation 1.45587030095973 -3.552713678800501e-15 0.25379889524329347
   children [
     Shape {
       appearance Appearance {
@@ -425,7 +425,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation 0.958022 0 -0.127712
+  translation 0.9183717605981461 -8.881784197001252e-16 -0.43701743896633083
   children [
     Shape {
       appearance Appearance {
@@ -449,7 +449,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation -1.05597 -1.77636e-15 1.72366
+  translation 1.5384665141737741 -1.7763600000000003e-15 -0.6641141534902886
   children [
     Shape {
       appearance Appearance {
@@ -473,7 +473,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation -1.95487 0 -0.686015
+  translation 0.361765700940353 -3.6415315207705135e-14 0.16435893304237137
   children [
     Shape {
       appearance Appearance {
@@ -497,7 +497,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation -1.20749 0 -0.478731
+  translation -0.9586197882413474 3.552713678800501e-15 0.18827195540812092
   rotation 0 -1 0 2.05704
   children [
     Shape {

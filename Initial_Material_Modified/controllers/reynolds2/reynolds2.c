@@ -39,7 +39,7 @@
 
 
 #define RULE1_THRESHOLD     0.3 // Threshold to activate aggregation rule. default 0.20
-#define RULE1_WEIGHT        (0.6/10)	   // Weight of aggregation rule. default 0.6/10
+#define RULE1_WEIGHT        (0.7/10)	   // Weight of aggregation rule. default 0.6/10
 
 #define RULE2_THRESHOLD     0.15  // Threshold to activate dispersion rule. default 0.15
 #define RULE2_WEIGHT        (0.02/10)	   // Weight of dispersion rule. default 0.02/10

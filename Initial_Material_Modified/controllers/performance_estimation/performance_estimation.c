@@ -20,7 +20,8 @@
 
 #define FLOCK_SIZE	5		// Number of robots in flock
 #define TIME_STEP	64		// [ms] Length of time step
-#define MAX_SPEED    0.1287         // in m/s
+#define MAX_SPEED    0.130         // in m/s because max velocity is 6.27 rad / sec  0.1287
+#define DELTA_T      0.064    	// Timestep (seconds)
 
 WbNodeRef robs[FLOCK_SIZE];		// Robots nodes
 WbFieldRef robs_trans[FLOCK_SIZE];	// Robots translation fields
@@ -86,12 +87,13 @@ void update_avg_location() {
           }
 }
 
-void compute_fitness(float* fit_c, float* fit_o,float* fit_vel) {
+void compute_fitness(float* fit_c, float* fit_o,float* fit_vel, float* dt) {
 	*fit_c = 0; *fit_o = 0;
 	// Compute performance indices
 	// Based on distance of the robots compared to the threshold and the deviation from the perfect angle towards
 	// the migration goal
 	float delta_avg_loc[2];	// previous Flock average positions
+	float delta_avg_vel[2];	// previous Flock average positions
             float projection;
 	int i;
            float orientation_sum_real=0;	
@@ -117,11 +119,15 @@ void compute_fitness(float* fit_c, float* fit_o,float* fit_vel) {
 	//orientation metric
 	*fit_o = (sqrt(powf(orientation_sum_real,2) + powf(orientation_sum_imaginary,2)))/FLOCK_SIZE;
 	// velocity metric
-	 delta_avg_loc[0]=avg_loc[0]-prev_avg_loc[0];
-        delta_avg_loc[1]=avg_loc[1]-prev_avg_loc[1];
-        projection=(delta_avg_loc[0]*mig_urge[0]+delta_avg_loc[1]*mig_urge[1])/sqrt(powf(mig_urge[0],2)+powf(mig_urge[1],2));
+	 delta_avg_loc[0] = avg_loc[0]-prev_avg_loc[0];
+        delta_avg_loc[1] = avg_loc[1]-prev_avg_loc[1];
+        
+        delta_avg_vel[0] = delta_avg_loc[0] / *dt;
+        delta_avg_vel[1] = delta_avg_loc[1] / *dt;
+        
+        projection=(delta_avg_vel[0]*mig_urge[0]+delta_avg_vel[1]*mig_urge[1])/sqrt(powf(mig_urge[0],2)+powf(mig_urge[1],2));
         //projection=sqrt(powf(delta_avg_loc[0],2)+powf(delta_avg_loc[1],2))* mig_urge[0];
-        *fit_vel=max(0,projection)/(MAX_SPEED);
+        *fit_vel=max(0.,projection)/(MAX_SPEED);
 
 }
 
@@ -144,7 +150,8 @@ int main(int argc, char *args[]) {
 	float inst_perf;	       // Instant Performance metric 
        float inter_sum=0;             //intermediary sum
 	float overall_perf;	       // Final Overall Performance metric 
-	int k=0;
+	int   k=0;
+	float delta_time;
 
 		
 	for(;;) {
@@ -162,19 +169,22 @@ int main(int argc, char *args[]) {
     			}
     			
     			update_avg_location();
+    			delta_time = k * DELTA_T  ;
+    			printf("time:%d, delta time  : %f \n",t,delta_time );
 
 			//Compute and normalize fitness values
-			compute_fitness(&fit_cluster, &fit_orient, &fit_velocity);
+			compute_fitness(&fit_cluster, &fit_orient, &fit_velocity, &delta_time);
 			//printf("time:%d, PREVIOUS:%f ,ACTUAL:%f \n", t,  prev_avg_loc[0], avg_loc[0]);	
-                                 prev_avg_loc[0] = avg_loc[0];	
-                                 prev_avg_loc[1] = avg_loc[1];
+                      prev_avg_loc[0] = avg_loc[0];	
+                      prev_avg_loc[1] = avg_loc[1];
 
 
 			
 			inst_perf=fit_cluster*fit_orient*fit_velocity;
+			
 				       
                     	inter_sum+=inst_perf;	   
-                     	overall_perf=k*TIME_STEP*inter_sum/t;
+                      overall_perf=(float) k*TIME_STEP*inter_sum/t;
 			printf("time:%d, Cohesion : %f,Orientation: %f,Velocity: %f,Instant performance:%f,Overall performance:%f \n", t, fit_cluster, fit_orient,fit_velocity,inst_perf,overall_perf);			
 			k=0;
 		}
