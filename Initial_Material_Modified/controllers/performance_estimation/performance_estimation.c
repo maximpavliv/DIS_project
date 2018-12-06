@@ -20,8 +20,7 @@
 
 #define FLOCK_SIZE	5		// Number of robots in flock
 #define TIME_STEP	64		// [ms] Length of time step
-#define MAX_SPEED    0.130         // in m/s because max velocity is 6.27 rad / sec  0.1287
-#define DELTA_T      0.064    	// Timestep (seconds)
+#define MAX_SPEED    0.1287         // in m/s because max velocity is 6.27 rad / sec  0.1287
 
 WbNodeRef robs[FLOCK_SIZE];		// Robots nodes
 WbFieldRef robs_trans[FLOCK_SIZE];	// Robots translation fields
@@ -93,7 +92,7 @@ void compute_fitness(float* fit_c, float* fit_o,float* fit_vel, float* dt) {
 	// Based on distance of the robots compared to the threshold and the deviation from the perfect angle towards
 	// the migration goal
 	float delta_avg_loc[2];	// previous Flock average positions
-	float delta_avg_vel[2];	// previous Flock average positions
+	float avg_vel[2];	// previous Flock average positions
             float projection;
 	int i;
            float orientation_sum_real=0;	
@@ -122,10 +121,10 @@ void compute_fitness(float* fit_c, float* fit_o,float* fit_vel, float* dt) {
 	 delta_avg_loc[0] = avg_loc[0]-prev_avg_loc[0];
         delta_avg_loc[1] = avg_loc[1]-prev_avg_loc[1];
         
-        delta_avg_vel[0] = delta_avg_loc[0] / *dt;
-        delta_avg_vel[1] = delta_avg_loc[1] / *dt;
+        avg_vel[0] = delta_avg_loc[0] / *dt;
+        avg_vel[1] = delta_avg_loc[1] / *dt;
         
-        projection=(delta_avg_vel[0]*mig_urge[0]+delta_avg_vel[1]*mig_urge[1])/sqrt(powf(mig_urge[0],2)+powf(mig_urge[1],2));
+        projection=(avg_vel[0]*mig_urge[0]+avg_vel[1]*mig_urge[1])/sqrt(powf(mig_urge[0],2)+powf(mig_urge[1],2));
         //projection=sqrt(powf(delta_avg_loc[0],2)+powf(delta_avg_loc[1],2))* mig_urge[0];
         *fit_vel=max(0.,projection)/(MAX_SPEED);
 
@@ -169,14 +168,13 @@ int main(int argc, char *args[]) {
     			}
     			
     			update_avg_location();
-    			delta_time = k * DELTA_T  ;
-    			printf("time:%d, delta time  : %f \n",t,delta_time );
+    			delta_time = k * (float)TIME_STEP/1000  ;
 
 			//Compute and normalize fitness values
 			compute_fitness(&fit_cluster, &fit_orient, &fit_velocity, &delta_time);
-			//printf("time:%d, PREVIOUS:%f ,ACTUAL:%f \n", t,  prev_avg_loc[0], avg_loc[0]);	
-                      prev_avg_loc[0] = avg_loc[0];	
-                      prev_avg_loc[1] = avg_loc[1];
+
+                                  prev_avg_loc[0] = avg_loc[0];	
+                                  prev_avg_loc[1] = avg_loc[1];
 
 
 			
