@@ -69,7 +69,7 @@ WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
 WbDeviceTag receiver;		// Handle for the receiver node
 WbDeviceTag emitter;		// Handle for the emitter node
 
-int robot_id_u, robot_id;	// Unique robot ID
+int robot_id;	// Unique robot ID
 
 float relative_pos[FLOCK_SIZE][3];	// relative X, Z, Theta of all robots of our tribe
 float prev_relative_pos[FLOCK_SIZE][3];	// Previous relative  X, Z, Theta values of our tribe
@@ -120,8 +120,7 @@ static void reset()
 	wb_receiver_enable(receiver,64);
 
 	//Reading the robot's name. Pay attention to name specification when adding robots to the simulation!
-	sscanf(robot_name,"epuck%d",&robot_id_u); // read robot id from the robot's name
-	robot_id = robot_id_u;	  // No normalization
+	sscanf(robot_name,"epuck%d",&robot_id); // read robot id from the robot's name
 	if(robot_id < 5)
                my_tribe = TRIBE_A;
            else
@@ -134,7 +133,7 @@ static void reset()
 	}
 */	
   
-        printf("Reset: robot %d, tribe %d\n",robot_id_u, my_tribe);
+        printf("Reset: robot %d, tribe %d\n",robot_id, my_tribe);
         
 }
 /*
@@ -208,6 +207,9 @@ void update_self_motion(int msl, int msr) {
 	// Keep orientation within 0, 2pi
 	if (my_position[2] > 2*M_PI) my_position[2] -= 2.0*M_PI;
 	if (my_position[2] < 0) my_position[2] += 2.0*M_PI;
+	
+	
+//	printf("robot %d position: %f %f %f", robot_id, my_position[0], my_position[1], my_position[2]);
 }
 
 /*
