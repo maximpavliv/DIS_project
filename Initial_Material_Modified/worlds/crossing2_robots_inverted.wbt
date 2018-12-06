@@ -25,6 +25,9 @@ Background {
     0.4 0.7 1
   ]
 }
+Supervisor {
+  controller "performance_estimation"
+}
 DEF ground Solid {
   translation -1.5 0 0
   children [
