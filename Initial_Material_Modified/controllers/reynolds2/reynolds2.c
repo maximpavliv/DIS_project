@@ -21,6 +21,7 @@
 #include <webots/distance_sensor.h>
 #include <webots/emitter.h>
 #include <webots/receiver.h>
+#include <stdlib.h>
 
 #define NB_SENSORS	  8	  // Number of distance sensors
 #define MIN_SENS          350     // Minimum sensibility value
@@ -41,13 +42,13 @@
 #define RULE1_THRESHOLD     0.2 // Threshold to activate aggregation rule. default 0.20
 #define RULE1_WEIGHT        (0.7/10)	   // Weight of aggregation rule. default 0.6/10
 
-#define RULE2_THRESHOLD     0.1  // Threshold to activate dispersion rule. default 0.15
+#define RULE2_THRESHOLD     0.04 // Threshold to activate dispersion rule. default 0.15
 #define RULE2_WEIGHT        (0.02/10)	   // Weight of dispersion rule. default 0.02/10
 
 #define RULE3_WEIGHT        (0.05/10)   // Weight of consistency rule. default 1.0/10
 #define MIGRATION_WEIGHT    (0.05/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
-#define BRT_WEIGHT           10
+#define BRT_WEIGHT           35
 #define MIGRATORY_URGE 1 // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
@@ -158,6 +159,36 @@ void limit(int *number, int limit) {
 }
 
 
+
+double gaussianNoise(double mu, double sigma)
+{
+  double U1, U2, W, mult;
+  static double X1, X2;
+  static int call = 0;
+
+  if (call == 1)
+    {
+      call = !call;
+      return (mu + sigma * (double) X2);
+    }
+
+  do
+    {
+      U1 = -1 + ((double) rand () / RAND_MAX) * 2;
+      U2 = -1 + ((double) rand () / RAND_MAX) * 2;
+      W = pow (U1, 2) + pow (U2, 2);
+    }
+  while (W >= 1 || W == 0);
+
+  mult = sqrt ((-2 * log (W)) / W);
+  X1 = U1 * mult;
+  X2 = U2 * mult;
+
+  call = !call;
+
+  return (mu + sigma * (double) X1);
+}
+
 void limit_duo_proportional(int *number_1, int *number_2, int limit) {
 
         float number_1_abs = (float) ABS(*number_1);
@@ -181,7 +212,6 @@ void limit_duo_proportional(int *number_1, int *number_2, int limit) {
                   *number_2 = limited_2;
         }        
 }
-
 
 
 /*
@@ -345,8 +375,8 @@ void process_received_ping_messages(void)
 		inbuffer = (char*) wb_receiver_get_data(receiver);
 		message_direction = wb_receiver_get_emitter_direction(receiver);
 		message_rssi = wb_receiver_get_signal_strength(receiver);
-		double y = message_direction[2];
-		double x = message_direction[0];
+		double y = message_direction[2] + gaussianNoise(0,0);
+		double x = message_direction[0] + gaussianNoise(0,0);
 
 		other_robot_id = (int)(inbuffer[5]-'0');  // since the name of the sender is in the received message. Note: this does not work for robots having id bigger than 9!
                       
