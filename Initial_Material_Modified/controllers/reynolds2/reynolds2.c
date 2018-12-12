@@ -40,15 +40,15 @@
 
 
 #define RULE1_THRESHOLD     0.2 // Threshold to activate aggregation rule. default 0.20
-#define RULE1_WEIGHT        (0.7/10)	   // Weight of aggregation rule. default 0.6/10
+#define RULE1_WEIGHT        (0.9/10)	   // Weight of aggregation rule. default 0.6/10
 
-#define RULE2_THRESHOLD     0.04 // Threshold to activate dispersion rule. default 0.15
+#define RULE2_THRESHOLD     0.05 // Threshold to activate dispersion rule. default 0.15
 #define RULE2_WEIGHT        (0.02/10)	   // Weight of dispersion rule. default 0.02/10
 
-#define RULE3_WEIGHT        (0.05/10)   // Weight of consistency rule. default 1.0/10
+#define RULE3_WEIGHT        (0.02/10)   // Weight of consistency rule. default 1.0/10
 #define MIGRATION_WEIGHT    (0.05/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
-#define BRT_WEIGHT           35
+#define BRT_WEIGHT           10
 #define MIGRATORY_URGE 1 // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
@@ -79,7 +79,7 @@ float prev_my_position[3];  		// X, Z, Theta of the current robot in the previou
 float speed[FLOCK_SIZE][2];		// Speeds calculated with Reynold's rules of our tribe
 float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules of our tribe
 //int initialized[FLOCK_SIZE];		// != 0 if initial positions have been received of our tribe
-float migr[2] = {0,-10};	        // Migration vector
+float migr[2] = {0.0,-10.0};	        // Migration vector
 char* robot_name;
 
 float theta_robots[FLOCK_SIZE];

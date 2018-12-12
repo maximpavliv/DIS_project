@@ -19,7 +19,7 @@
 #include <webots/supervisor.h>
 
 #define FLOCK_SIZE	5		// Number of robots in flock
-#define TIME_STEP	64		// [ms] Length of time step
+#define TIME_STEP	64.0		// [ms] Length of time step
 #define MAX_SPEED    0.1287         // in m/s because max velocity is 6.27 rad / sec  0.1287
 
 WbNodeRef robs[FLOCK_SIZE];		// Robots nodes
@@ -39,7 +39,7 @@ float orient_migr; 			// Migration orientation
 int t;
 float avg_loc[2]  ;	// Flock average positions at time t
 float prev_avg_loc[2] ;	// previous Flock average positions
-float mig_urge[2] = {1,0};	// previous Flock average positions
+float mig_urge[2] = {1.0,0.0};	// previous Flock average positions
 /*
  * Initialize flock position and devices
  */
@@ -87,13 +87,13 @@ void update_avg_location() {
 }
 
 void compute_fitness(float* fit_c, float* fit_o,float* fit_vel, float* dt) {
-	*fit_c = 0; *fit_o = 0;
+	*fit_c = 0.0; *fit_o = 0.0;*fit_vel=0.0;
 	// Compute performance indices
 	// Based on distance of the robots compared to the threshold and the deviation from the perfect angle towards
 	// the migration goal
 	float delta_avg_loc[2];	// previous Flock average positions
 	float avg_vel[2];	// previous Flock average positions
-            float projection;
+       float projection;
 	int i;
            float orientation_sum_real=0;	
            float orientation_sum_imaginary=0;
@@ -116,7 +116,7 @@ void compute_fitness(float* fit_c, float* fit_o,float* fit_vel, float* dt) {
 	//fit_cluster = fit_cluster_ref/fit_cluster;
 	*fit_c = 1/(1+*fit_c);
 	//orientation metric
-	*fit_o = (sqrt(powf(orientation_sum_real,2) + powf(orientation_sum_imaginary,2)))/FLOCK_SIZE;
+	*fit_o = (sqrtf(powf(orientation_sum_real,2) + powf(orientation_sum_imaginary,2)))/FLOCK_SIZE;
 	// velocity metric
 	 delta_avg_loc[0] = avg_loc[0]-prev_avg_loc[0];
         delta_avg_loc[1] = avg_loc[1]-prev_avg_loc[1];
@@ -124,9 +124,9 @@ void compute_fitness(float* fit_c, float* fit_o,float* fit_vel, float* dt) {
         avg_vel[0] = delta_avg_loc[0] / *dt;
         avg_vel[1] = delta_avg_loc[1] / *dt;
         
-        projection=(avg_vel[0]*mig_urge[0]+avg_vel[1]*mig_urge[1])/sqrt(powf(mig_urge[0],2)+powf(mig_urge[1],2));
+        projection=(avg_vel[0]*mig_urge[0]+avg_vel[1]*mig_urge[1])/sqrtf(powf(mig_urge[0],2)+powf(mig_urge[1],2));
         //projection=sqrt(powf(delta_avg_loc[0],2)+powf(delta_avg_loc[1],2))* mig_urge[0];
-        *fit_vel=max(0.,projection)/(MAX_SPEED);
+        *fit_vel=max(0.0,projection)/(MAX_SPEED);
 
 }
 
@@ -147,9 +147,9 @@ int main(int argc, char *args[]) {
 	float fit_orient;			// Performance metric for orientation
 	float fit_velocity;			// Performance metric for velocity
 	float inst_perf;	       // Instant Performance metric 
-       float inter_sum=0;             //intermediary sum
+       float inter_sum=0.0;             //intermediary sum
 	float overall_perf;	       // Final Overall Performance metric 
-	int   k=0;
+	float k=0.0;
 	float delta_time;
 
 		
@@ -157,7 +157,7 @@ int main(int argc, char *args[]) {
 		wb_robot_step(TIME_STEP);
 		k++;
 		
-		if (t % 10 == 0) {
+		if (k == 1.0) {
 		
 			for (i=0;i<FLOCK_SIZE;i++) {
 				// Get data
@@ -168,7 +168,7 @@ int main(int argc, char *args[]) {
     			}
     			
     			update_avg_location();
-    			delta_time = k * (float)TIME_STEP/1000  ;
+    			delta_time = k * TIME_STEP/1000.0  ;
 
 			//Compute and normalize fitness values
 			compute_fitness(&fit_cluster, &fit_orient, &fit_velocity, &delta_time);
@@ -184,7 +184,7 @@ int main(int argc, char *args[]) {
                     	inter_sum+=inst_perf;	   
                       overall_perf=(float) k*TIME_STEP*inter_sum/t;
 			printf("time:%d, Cohesion : %f,Orientation: %f,Velocity: %f,Instant performance:%f,Overall performance:%f \n", t, fit_cluster, fit_orient,fit_velocity,inst_perf,overall_perf);			
-			k=0;
+			k=0.0;
 		}
 		
 		t += TIME_STEP;
