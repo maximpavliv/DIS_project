@@ -56,6 +56,8 @@
 #define TRIBE_A 1  //from 0 to 4
 #define TRIBE_B 2  // from 5 to 9
 
+#define STD_NOISE_DISTANCE 0.0033 //in meters
+
 /*Webots 2018b*/
 WbDeviceTag left_motor; //handler for left wheel of the robot
 WbDeviceTag right_motor; //handler for the right wheel of the robot
@@ -64,6 +66,7 @@ int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; /
 //int e_puck_matrix[16] = {57,45,30,20,15,15,5,5,5,5,15,15,20,30,45,58}; // for obstacle avoidance
 //static double l_weight[NB_SENSORS] = {0.5, 0.25, 0.2, 0, 0, 0, 0, 0};
 //static double r_weight[NB_SENSORS] = {0, 0, 0, 0, 0, 0.2, 0.25, 0.5};
+float sensorDir[NB_SENSORS] = {0.2967, 0.8727, 1.5708, 2.6180, 3.6652, 4.7124, 5.4105, 5.9865};
 
 
 WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
@@ -187,6 +190,21 @@ double gaussianNoise(double mu, double sigma)
   call = !call;
 
   return (mu + sigma * (double) X1);
+}
+
+float quanticised_theta(float theta) {
+  float quanticised = 0;
+  if(theta < (sensorDir[0]+sensorDir[1])/2)
+    quanticised = sensorDir[0];
+  else if(theta > (sensorDir[NB_SENSORS-2]+sensorDir[NB_SENSORS-1])/2)
+    quanticised = sensorDir[NB_SENSORS-1];
+  else
+    for(int i = 0; i<NB_SENSORS-2; i++)
+    {
+      if((theta>(sensorDir[i]+sensorDir[i+1])/2) && (theta<(sensorDir[i+1]+sensorDir[i+2])/2))
+        quanticised = sensorDir[i+1];
+    }
+    return quanticised;
 }
 
 void limit_duo_proportional(int *number_1, int *number_2, int limit) {
@@ -383,8 +401,17 @@ void process_received_ping_messages(void)
                       if(((other_robot_id<5) && my_tribe==TRIBE_A) || ((other_robot_id>=5) && my_tribe==TRIBE_B))
                       {
                           theta = -atan2(y,x);
+                          if(theta < 0)
+                            theta += 2*3.1416;
+                          //Here we quanticise the direction, like its is done with the real epucks
+                          theta = quanticised_theta(theta); //We can comment out this line to skip quantisation
                           theta = theta + my_position[2]; // find the relative theta;
             	    range = sqrt((1/message_rssi));
+    		
+            	    //this is in meters.
+            	    //We add some noise to the distance measurement, respecting with the std we measured with real epucks, for a maximal distance between them (around 20cm)
+                          //The angle values are discrete, so no std is measured on them. Instead, we quanticise them (higher in the code)
+                          range += gaussianNoise(0, STD_NOISE_DISTANCE);//We can comment out this line if we dont want any noise
     		
             	    // Get position update 
     		    //theta += dtheta_g[other_robot_id];
@@ -395,7 +422,7 @@ void process_received_ping_messages(void)
     		    relative_pos[other_robot_id%FLOCK_SIZE][0] = range*cos(theta);  // relative x pos
     		    relative_pos[other_robot_id%FLOCK_SIZE][1] = -1.0 * range*sin(theta);   // relative y pos
     
-    		    //printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my theta %g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x)*180.0/3.141592,my_position[2]*180.0/3.141592);
+    		    printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my theta %g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x),my_position[2]*180.0/3.141592);
     		
         		    relative_speed[other_robot_id%FLOCK_SIZE][0] = relative_speed[other_robot_id%FLOCK_SIZE][0]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id%FLOCK_SIZE][0]-prev_relative_pos[other_robot_id%FLOCK_SIZE][0]);
         		    relative_speed[other_robot_id%FLOCK_SIZE][1] = relative_speed[other_robot_id%FLOCK_SIZE][1]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id%FLOCK_SIZE][1]-prev_relative_pos[other_robot_id%FLOCK_SIZE][1]);		
