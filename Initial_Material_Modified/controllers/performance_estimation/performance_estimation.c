@@ -161,7 +161,7 @@ int main(int argc, char *args[]) {
 		wb_robot_step(TIME_STEP);
 		k++;
 		
-		if (k == 1.0) {
+		if (k == 1.0 ) {
 		
 			for (i=0;i<FLOCK_SIZE;i++) {
 				// Get data
