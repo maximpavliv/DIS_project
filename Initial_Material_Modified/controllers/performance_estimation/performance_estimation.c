@@ -70,6 +70,8 @@ float max(float a,float b){
  * Compute performance metric.
  */
 void update_avg_location() {
+  avg_loc[0]=0;
+  avg_loc[1]=0;
   //update la average location 
   int i,j;
   for(i=0;i<FLOCK_SIZE;i++){
@@ -121,13 +123,15 @@ void compute_fitness(float* fit_c, float* fit_o,float* fit_vel, float* dt) {
 	 delta_avg_loc[0] = avg_loc[0]-prev_avg_loc[0];
         delta_avg_loc[1] = avg_loc[1]-prev_avg_loc[1];
         
+        
+
         avg_vel[0] = delta_avg_loc[0] / *dt;
         avg_vel[1] = delta_avg_loc[1] / *dt;
         
         projection=(avg_vel[0]*mig_urge[0]+avg_vel[1]*mig_urge[1])/sqrtf(powf(mig_urge[0],2)+powf(mig_urge[1],2));
         //projection=sqrt(powf(delta_avg_loc[0],2)+powf(delta_avg_loc[1],2))* mig_urge[0];
         *fit_vel=max(0.0,projection)/(MAX_SPEED);
-
+        
 }
 
 

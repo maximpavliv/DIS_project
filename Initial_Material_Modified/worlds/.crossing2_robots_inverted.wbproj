@@ -7,7 +7,7 @@ centralWidgetVisible: 1
 selectionDisabled: 0
 viewpointLocked: 0
 orthographicViewHeight: 1
-textFiles: 0 "controllers/reynolds2/reynolds2.c" "controllers/performance_estimation/performance_estimation.c" "../../LABs/lab04/Code/webots/controllers/reynolds2/reynolds2.c"
+textFiles: 1 "controllers/reynolds2/reynolds2.c" "controllers/performance_estimation/performance_estimation.c" "../../LABs/lab04/Code/webots/controllers/reynolds2/reynolds2.c"
 renderingDevicePerspectives: epuck2:camera;1;1;0;0
 renderingDevicePerspectives: epuck3:camera;1;1;0;0
 renderingDevicePerspectives: epuck7:camera;1;1;0;0
