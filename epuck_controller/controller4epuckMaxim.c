@@ -79,134 +79,60 @@ char* robot_name;
 
 int my_tribe;
 
+
+
+int getselector()
+{
+    return SELECTOR0 + 2*SELECTOR1 + 4*SELECTOR2 + 8*SELECTOR3;
+}
+
 /*
  * Reset the robot's devices and get its ID
  */
-//----------------stopped here max jeu 17:39
+
 static void reset() 
 {
-	//			wb_robot_init();
+	// Initialization functions from the provided 
+	e_init_port();
+	e_init_ad_scan();
+	e_init_uart1();
+	e_led_clear();	
+	e_init_motors();
+	e_start_agendas_processing();
+
+	e_calibrate_ir(); //DONT KNOW IF GONNA NEED CALIBRATION OR NOT
+
+	ircomStart();
+	ircomEnableContinuousListening();
+	ircomListen();
+
+	// Reset if Power on (some problem for few robots)
+	if (RCONbits.POR) {
+		RCONbits.POR = 0;
+		__asm__ volatile ("reset");
+	}
 
 
-	//			receiver = wb_robot_get_device("receiver");
-	//			emitter = wb_robot_get_device("emitter");
-	
-	/*Webots 2018b*/
-	//get motors
-	//			left_motor = wb_robot_get_device("left wheel motor");
-         //			right_motor = wb_robot_get_device("right wheel motor");
-         //			wb_motor_set_position(left_motor, INFINITY);
-         //			wb_motor_set_position(right_motor, INFINITY);
-         /*Webots 2018b*/
-	
-	
-	int i;
-	char s[4]="ps0";
-	/*
-				for(i=0; i<NB_SENSORS;i++) {
-					ds[i]=wb_robot_get_device(s);	// the device name is specified in the world file
-					s[2]++;				// increases the device number
-				}
-	*/
-	//			robot_name=(char*) wb_robot_get_name(); 
-
-	/*
-				for(i=0;i<NB_SENSORS;i++)
-				  wb_distance_sensor_enable(ds[i],64);
-	*/
-	//			wb_receiver_enable(receiver,64);
-
-	//Reading the robot's name. Pay attention to name specification when adding robots to the simulation!
-	//			sscanf(robot_name,"epuck%d",&robot_id); // read robot id from the robot's name
+	int selector_value = getselector();
+	if(selector_value>=0 && selector_value<=9)
+	{
+		robot_id = selector_value;
+	}	
+	else
+	{
+		btcomSendString("ERROR: SELECTOR NOT BETWEEN 0 AND 9!!!\n\n");
+	}	
 	if(robot_id < 5)	//NEED TO CHANGE THIS A LITTLE maybe
                my_tribe = TRIBE_A;
            else
                my_tribe = TRIBE_B;
-               
   
 /*	for(i=0; i<FLOCK_SIZE; i++) 
 	{
 		initialized[i] = 0;		  // Set initialization to 0 (= not yet initialized)
 	}
 */	
-
-
-        //			printf("Reset: robot %d, tribe %d\n",robot_id, my_tribe);
-
-
 }
-/*
- * Keep given float number within interval {-limit, limit}
- */
-/*
-			void limitf(float *number, double limit) {
-				if (*number > limit)
-					*number = limit;
-				if (*number < -limit)
-					*number = -limit;
-			}
-*/
-/*
- * Keep given int number within interval {-limit, limit}
- */
-/*
-			void limit(int *number, int limit) {
-				if (*number > limit)
-					*number = limit;
-				if (*number < -limit)
-					*number = -limit;
-			}
-*/
-
-/*
-			double gaussianNoise(double mu, double sigma)
-			{
-			  double U1, U2, W, mult;
-			  static double X1, X2;
-			  static int call = 0;
-
-			  if (call == 1)
-			    {
-			      call = !call;
-			      return (mu + sigma * (double) X2);
-			    }
-
-			  do
-			    {
-			      U1 = -1 + ((double) rand () / RAND_MAX) * 2;
-			      U2 = -1 + ((double) rand () / RAND_MAX) * 2;
-			      W = pow (U1, 2) + pow (U2, 2);
-			    }
-			  while (W >= 1 || W == 0);
-
-			  mult = sqrt ((-2 * log (W)) / W);
-			  X1 = U1 * mult;
-			  X2 = U2 * mult;
-
-			  call = !call;
-
-			  return (mu + sigma * (double) X1);
-			}
-*/
-
-/*
-			float quanticised_theta(float theta) {
-			  float quanticised = 0;
-			  if(theta < (sensorDir[0]+sensorDir[1])/2)
-			    quanticised = sensorDir[0];
-			  else if(theta > (sensorDir[NB_SENSORS-2]+sensorDir[NB_SENSORS-1])/2)
-			    quanticised = sensorDir[NB_SENSORS-1];
-			  else
-			  {
-			    for(int i = 0; i<NB_SENSORS-2; i++)
-			    {
-			      if((theta>(sensorDir[i]+sensorDir[i+1])/2) && (theta<(sensorDir[i+1]+sensorDir[i+2])/2))
-				quanticised = sensorDir[i+1];
-			    }
-			  }
-			    return quanticised;
-			}
-*/
 
 void limit_duo_proportional(int *number_1, int *number_2, int limit) {
 
@@ -258,7 +184,6 @@ void update_self_motion(int msl, int msr) {
 	if (my_position[2] > 2*M_PI) my_position[2] -= 2.0*M_PI;
 	if (my_position[2] < 0) my_position[2] += 2.0*M_PI;
 	
-	
 }
 
 /*
@@ -272,7 +197,7 @@ void compute_wheel_speeds(int *msl, int *msr)
 	
 	float x = speed[robot_id][0]*cosf(my_position[2]) + speed[robot_id][1]*sinf(my_position[2]); // x in robot coordinates
 	float z = -speed[robot_id][0]*sinf(my_position[2]) + speed[robot_id][1]*cosf(my_position[2]); // z in robot coordinates
-	//printf("id = %d, x = %f, y = %f\n", robot_id, x, z);
+
 	float Ku = 0.2;   // Forward control coefficient 0.2
 	float Kw = 1;  // Rotational control coefficient 1
 	float range = sqrtf(x*x + z*z);	  // Distance to the wanted position
@@ -287,7 +212,6 @@ void compute_wheel_speeds(int *msl, int *msr)
 	
 	*msl = (u - AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
 	*msr = (u + AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
-	//printf("bearing = %f, u = %f, w = %f, msl = %d, msr = %d\n", bearing, u, w, msl, msr);
 }
 
 
@@ -348,7 +272,7 @@ void reynolds_rules() {
                  speed[robot_id][j] +=  dispersion[j] * RULE2_WEIGHT;
                  speed[robot_id][j] +=  consistency[j] * RULE3_WEIGHT;
          }
-        //			speed[robot_id][1] *= -1; //y axis of webots is inverted		 WHAT DO WE DO WITH THIS?
+        //			speed[robot_id][1] *= -1; //y axis of webots is inverted	WHAT DO WE DO WITH THIS?	ok lets keep it non inverted for now
         
         
         
@@ -358,8 +282,9 @@ void reynolds_rules() {
           speed[robot_id][1] += 0.01*sin(my_position[2] + M_PI/2);
         }
         else {
-              speed[robot_id][0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT;
-              //			speed[robot_id][1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT; //y axis of webots is inverted 		WHAT DO WE DO WITH THIS?
+		speed[robot_id][0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT;
+              //			speed[robot_id][1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT; //y axis of webots is inverted	WHAT DO WE DO WITH THIS?	ok lets keep it non inverted for now (line below)
+		speed[robot_id][1] += (migr[1]-my_position[1]) * MIGRATION_WEIGHT;
         }
 }
 
