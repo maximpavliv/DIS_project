@@ -13,14 +13,14 @@
 #include <math.h>
 #include <string.h>
 
-#include <webots/robot.h>
+//			#include <webots/robot.h>
 /*Webots 2018b*/
-#include <webots/motor.h>
+//			#include <webots/motor.h>
 /*Webots 2018b*/
-#include <webots/differential_wheels.h>
-#include <webots/distance_sensor.h>
-#include <webots/emitter.h>
-#include <webots/receiver.h>
+//			#include <webots/differential_wheels.h>
+//			#include <webots/distance_sensor.h>
+//			#include <webots/emitter.h>
+//			#include <webots/receiver.h>
 #include <stdlib.h>
 
 #define NB_SENSORS	  8	  // Number of distance sensors
@@ -36,6 +36,7 @@
 #define AXLE_LENGTH 		0.052	// Distance between wheels of robot (meters)
 #define SPEED_UNIT_RADS		0.00628	// Conversion factor from speed unit to radian per second
 #define WHEEL_RADIUS		0.0205	// Wheel radius (meters)
+#define DELTA_T			0.064	// Timestep (seconds)
 
 
 #define RULE1_THRESHOLD     0.05 // Threshold to activate aggregation rule. default 0.20
@@ -198,13 +199,11 @@ float quanticised_theta(float theta) {
   else if(theta > (sensorDir[NB_SENSORS-2]+sensorDir[NB_SENSORS-1])/2)
     quanticised = sensorDir[NB_SENSORS-1];
   else
-  {
     for(int i = 0; i<NB_SENSORS-2; i++)
     {
       if((theta>(sensorDir[i]+sensorDir[i+1])/2) && (theta<(sensorDir[i+1]+sensorDir[i+2])/2))
         quanticised = sensorDir[i+1];
     }
-  }
     return quanticised;
 }
 
@@ -240,8 +239,8 @@ void update_self_motion(int msl, int msr) {
 	float theta = my_position[2];
   
 	// Compute deltas of the robot
-	float dr = (float)msr * SPEED_UNIT_RADS * WHEEL_RADIUS * TIME_STEP/1000;
-	float dl = (float)msl * SPEED_UNIT_RADS * WHEEL_RADIUS * TIME_STEP/1000;
+	float dr = (float)msr * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
+	float dl = (float)msl * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
 	float du = (dr + dl)/2.0;
 	float dtheta = (dr - dl)/AXLE_LENGTH;
   
@@ -425,8 +424,8 @@ void process_received_ping_messages(void)
     
     		    printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my theta %g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x),my_position[2]*180.0/3.141592);
     		
-        		    relative_speed[other_robot_id%FLOCK_SIZE][0] = relative_speed[other_robot_id%FLOCK_SIZE][0]*0.0 + 1.0*(1000/TIME_STEP)*(relative_pos[other_robot_id%FLOCK_SIZE][0]-prev_relative_pos[other_robot_id%FLOCK_SIZE][0]);
-        		    relative_speed[other_robot_id%FLOCK_SIZE][1] = relative_speed[other_robot_id%FLOCK_SIZE][1]*0.0 + 1.0*(1000/TIME_STEP)*(relative_pos[other_robot_id%FLOCK_SIZE][1]-prev_relative_pos[other_robot_id%FLOCK_SIZE][1]);		
+        		    relative_speed[other_robot_id%FLOCK_SIZE][0] = relative_speed[other_robot_id%FLOCK_SIZE][0]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id%FLOCK_SIZE][0]-prev_relative_pos[other_robot_id%FLOCK_SIZE][0]);
+        		    relative_speed[other_robot_id%FLOCK_SIZE][1] = relative_speed[other_robot_id%FLOCK_SIZE][1]*0.0 + 1.0*(1/DELTA_T)*(relative_pos[other_robot_id%FLOCK_SIZE][1]-prev_relative_pos[other_robot_id%FLOCK_SIZE][1]);		
     		 }
 		 
 		wb_receiver_next_packet(receiver);
@@ -486,8 +485,8 @@ int main(){
 		
 		process_received_ping_messages();
 
-		speed[robot_id][0] = (1000/TIME_STEP)*(my_position[0]-prev_my_position[0]);
-		speed[robot_id][1] = (1000/TIME_STEP)*(my_position[1]-prev_my_position[1]);
+		speed[robot_id][0] = (1/DELTA_T)*(my_position[0]-prev_my_position[0]);
+		speed[robot_id][1] = (1/DELTA_T)*(my_position[1]-prev_my_position[1]);
     
 		// Reynold's rules with all previous info (updates the speed[][] table)
 		reynolds_rules();
