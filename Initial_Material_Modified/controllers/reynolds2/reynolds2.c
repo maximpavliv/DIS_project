@@ -62,9 +62,6 @@ WbDeviceTag left_motor; //handler for left wheel of the robot
 WbDeviceTag right_motor; //handler for the right wheel of the robot
 /*Webots 2018b*/
 int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // Maze
-//int e_puck_matrix[16] = {57,45,30,20,15,15,5,5,5,5,15,15,20,30,45,58}; // for obstacle avoidance
-//static double l_weight[NB_SENSORS] = {0.5, 0.25, 0.2, 0, 0, 0, 0, 0};
-//static double r_weight[NB_SENSORS] = {0, 0, 0, 0, 0, 0.2, 0.25, 0.5};
 float sensorDir[NB_SENSORS] = {0.2967, 0.8727, 1.5708, 2.6180, 3.6652, 4.7124, 5.4105, 5.9865};
 
 
@@ -84,7 +81,7 @@ float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules o
 float migr[2] = {0.0,-10.0};	        // Migration vector
 char* robot_name;
 
-float theta_robots[FLOCK_SIZE];
+//float theta_robots[FLOCK_SIZE];
 
 int my_tribe;
 
@@ -308,17 +305,16 @@ void reynolds_rules() {
 	for(i=0;i<FLOCK_SIZE;i++){
             if (i==robot_id)
           	continue; // dont consider yourself for average
-	
             for (j=0;j<2;j++) {
               rel_avg_speed[j] += relative_speed[i][j] ;
               rel_avg_loc[j]   += relative_pos[i][j];
              }
   	}
-	
-            for (j=0;j<2;j++) {
-              rel_avg_speed[j] /= FLOCK_SIZE-1 ;
-              rel_avg_loc[j]   /= FLOCK_SIZE-1;
-            }
+	for (j=0;j<2;j++) {
+	rel_avg_speed[j] /= FLOCK_SIZE-1 ;
+	rel_avg_loc[j]   /= FLOCK_SIZE-1;
+	}
+
 	/* Rule 1 - Aggregation/Cohesion: move towards the center of mass */
     
         for (j=0;j<2;j++) 
@@ -336,7 +332,6 @@ void reynolds_rules() {
               	   }
                  }
              }
-	
 	}
 	
 	/* Rule 3 - Consistency/Alignment: match the speeds of flockmates */
@@ -503,13 +498,11 @@ int main(){
     
 		// Add Braitenberg
 		
-		//printf("robot %d: msl and msr before braitenberg: value (%d,%d)\n",robot_id,msl,msr);
 		msl+= BRT_WEIGHT * bmsl;
 		msr += BRT_WEIGHT * bmsr;
-		//printf("robot %d:msl and msr after braitenberg: value (%d,%d)\n",robot_id,msl,msr);
 		
                   
-         		limit_duo_proportional(&msl, &msr, MAX_SPEED);
+         	limit_duo_proportional(&msl, &msr, MAX_SPEED);
                   
 		/*Webots 2018b*/
 		// Set speed
