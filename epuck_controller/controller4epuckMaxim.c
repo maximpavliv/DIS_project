@@ -13,23 +13,27 @@
 #include <math.h>
 #include <string.h>
 
-//			#include <webots/robot.h>
-/*Webots 2018b*/
-//			#include <webots/motor.h>
-/*Webots 2018b*/
-//			#include <webots/differential_wheels.h>
-//			#include <webots/distance_sensor.h>
-//			#include <webots/emitter.h>
-//			#include <webots/receiver.h>
+//Here we add the libraries (robot, motor, differential_wheels, distance_sensor, emitter, receiver)
+#include <ircom/e_ad_conv.h>
+#include <epfl/e_init_port.h>
+#include <epfl/e_epuck_ports.h>
+#include <epfl/e_uart_char.h>
+#include <epfl/e_led.h>
+
+#include <epfl/e_led.h>
+#include <epfl/e_motors.h>
+#include <epfl/e_agenda.h>
+
+#include <ircom/ircom.h>
+#include <btcom/btcom.h> //libraries from provided test code. It should be enough 
+
+
 #include <stdlib.h>
 
 #define NB_SENSORS	  8	  // Number of distance sensors
 #define MIN_SENS          350     // Minimum sensibility value
 #define MAX_SENS          4096    // Maximum sensibility value
 #define MAX_SPEED         1000     // Maximum speed
-/*Webots 2018b*/
-//			#define MAX_SPEED_WEB      6.27    // Maximum speed webots
-/*Webots 2018b*/
 #define FLOCK_SIZE	  5	  // Size of flock
 #define TIME_STEP	  64	  // [ms] Length of time step
 
@@ -55,19 +59,9 @@
 #define TRIBE_A 1  //from 0 to 4
 #define TRIBE_B 2  // from 5 to 9
 
-//			#define STD_NOISE_DISTANCE 0.0033 //in meters
-
-/*Webots 2018b*/
-//			WbDeviceTag left_motor; //handler for left wheel of the robot
-//			WbDeviceTag right_motor; //handler for the right wheel of the robot
-/*Webots 2018b*/
 int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // Maze
 //			float sensorDir[NB_SENSORS] = {0.2967, 0.8727, 1.5708, 2.6180, 3.6652, 4.7124, 5.4105, 5.9865}; probably we gonna reuse this
 
-
-//			WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
-//			WbDeviceTag receiver;		// Handle for the receiver node
-//			WbDeviceTag emitter;		// Handle for the emitter node
 
 int robot_id;	// Unique robot ID
 
@@ -88,6 +82,7 @@ int my_tribe;
 /*
  * Reset the robot's devices and get its ID
  */
+//----------------stopped here max jeu 17:39
 static void reset() 
 {
 	//			wb_robot_init();
