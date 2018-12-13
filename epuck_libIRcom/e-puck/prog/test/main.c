@@ -89,7 +89,7 @@ int main()
     }
 
     // activate obstacle avoidance
-    //e_activate_agenda(obstacleAvoidance, 10000);
+    e_activate_agenda(obstacleAvoidance, 10000);
 
     // acting as sender
     if (selector == 1)
