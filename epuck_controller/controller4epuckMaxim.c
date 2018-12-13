@@ -73,7 +73,6 @@ float speed[FLOCK_SIZE][2];		// Speeds calculated with Reynold's rules of our tr
 float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules of our tribe
 //int initialized[FLOCK_SIZE];		// != 0 if initial positions have been received of our tribe
 float migr[2] = {0.0,-10.0};	        // Migration vector
-char* robot_name;
 
 //float theta_robots[FLOCK_SIZE];
 
@@ -295,9 +294,10 @@ void reynolds_rules() {
 */
 void send_ping(void)  
 {
-        char out[10];
-	//			strcpy(out,robot_name);  // in the ping message we send the name of the robot.
-	//			wb_emitter_send(emitter,out,strlen(out)+1); 
+//      char out[10];
+//	sprintf (out, "robotID%d", robot_id); //NOT SURE WE NEED A STRING
+	ircomSend(robot_id);	    
+	while (ircomSendDone() == 0);
 }
 
 /*
@@ -306,64 +306,52 @@ void send_ping(void)
 */
 void process_received_ping_messages(void)
 {
-        const double *message_direction;
-        double message_rssi; // Received Signal Strength indicator
-	double theta;
-	double range;
-	char *inbuffer;	// Buffer for the receiver node
-        int other_robot_id;
-	/*
-	while (wb_receiver_get_queue_length(receiver) > 0) {
-		inbuffer = (char*) wb_receiver_get_data(receiver);
-		message_direction = wb_receiver_get_emitter_direction(receiver);
-		message_rssi = wb_receiver_get_signal_strength(receiver);
-		double y = message_direction[2] + gaussianNoise(0,0);
-		double x = message_direction[0] + gaussianNoise(0,0);
+	
+	//OK WHAT WE DO HERE IS: get the data, get the direction,the rssi, and the other robot's ID. Then, check if the other robot is in our tribe, if yes do the following: {compute the theta of the other robot, theta += my_position[2], compute the range, update prev_relative_pos. Compute the new relative_pos (WARNING: there is a minus sign, which we probably dont need to do. RECHECK!). Update the relative_speed.}. Finally, receive next packet
 
-		other_robot_id = (int)(inbuffer[5]-'0');  // since the name of the sender is in the received message. Note: this does not work for robots having id bigger than 9!
-                      
-                      if(((other_robot_id<5) && my_tribe==TRIBE_A) || ((other_robot_id>=5) && my_tribe==TRIBE_B))
-                      {
-                          theta = -atan2(y,x);
-                          if(theta < 0)
-                            theta += 2*3.1416;
-                          //Here we quanticise the direction, like its is done with the real epucks
-                          theta = quanticised_theta(theta); //We can comment out this line to skip quantisation
-                          theta = theta + my_position[2]; // find the relative theta;
-            	    range = sqrt((1/message_rssi));
-    		
-            	    //this is in meters.
-            	    //We add some noise to the distance measurement, respecting with the std we measured with real epucks, for a maximal distance between them (around 20cm)
-                          //The angle values are discrete, so no std is measured on them. Instead, we quanticise them (higher in the code)
-                          range += gaussianNoise(0, STD_NOISE_DISTANCE);//We can comment out this line if we dont want any noise
-    		
-            	    // Get position update 
-    		    //theta += dtheta_g[other_robot_id];
-    		    //theta_robots[other_robot_id] = 0.8*theta_robots[other_robot_id] + 0.2*theta;
-    		    prev_relative_pos[other_robot_id%FLOCK_SIZE][0] = relative_pos[other_robot_id%FLOCK_SIZE][0];
-    		    prev_relative_pos[other_robot_id%FLOCK_SIZE][1] = relative_pos[other_robot_id%FLOCK_SIZE][1];
-    
-    		    relative_pos[other_robot_id%FLOCK_SIZE][0] = range*cos(theta);  // relative x pos
-    		    relative_pos[other_robot_id%FLOCK_SIZE][1] = -1.0 * range*sin(theta);   // relative y pos
-    
-    		    printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my theta %g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x),my_position[2]*180.0/3.141592);
-    		
-        		    relative_speed[other_robot_id%FLOCK_SIZE][0] = relative_speed[other_robot_id%FLOCK_SIZE][0]*0.0 + 1.0*(1000/TIME_STEP)*(relative_pos[other_robot_id%FLOCK_SIZE][0]-prev_relative_pos[other_robot_id%FLOCK_SIZE][0]);
-        		    relative_speed[other_robot_id%FLOCK_SIZE][1] = relative_speed[other_robot_id%FLOCK_SIZE][1]*0.0 + 1.0*(1000/TIME_STEP)*(relative_pos[other_robot_id%FLOCK_SIZE][1]-prev_relative_pos[other_robot_id%FLOCK_SIZE][1]);		
-    		 }
-		 
-		wb_receiver_next_packet(receiver);
+
+	// ircomData.messagesCount;		//messages dans la cue. 
+	IrcomMessage imsg;
+	ircomPopMessage(&imsg);
+	if (imsg.error == 0)
+	{
+		//e_set_led(1, 2);
+		int other_robot_id = (int) imsg.value;
+		if(((other_robot_id<5) && my_tribe==TRIBE_A) || ((other_robot_id>=5) && my_tribe==TRIBE_B))
+		{
+			double range = imsg.distance;
+			double theta = imsg.direction;
+			theta += my_position[2];
+
+			prev_relative_pos[other_robot_id%FLOCK_SIZE][0] = relative_pos[other_robot_id%FLOCK_SIZE][0];
+			prev_relative_pos[other_robot_id%FLOCK_SIZE][1] = relative_pos[other_robot_id%FLOCK_SIZE][1];
+
+			relative_pos[other_robot_id%FLOCK_SIZE][0] = range*cos(theta);  // relative x pos
+			relative_pos[other_robot_id%FLOCK_SIZE][1] = 1.0 * range*sin(theta);   // relative y pos 	//WARNING: there was initially a minus sign here, I deleted it because I think it is there because of the webot's z axis inversion. But I'm not totally sure 
+			
+		    	relative_speed[other_robot_id%FLOCK_SIZE][0] = relative_speed[other_robot_id%FLOCK_SIZE][0]*0.0 + 1.0*(1000/TIME_STEP)*(relative_pos[other_robot_id%FLOCK_SIZE][0]-prev_relative_pos[other_robot_id%FLOCK_SIZE][0]);
+		    	relative_speed[other_robot_id%FLOCK_SIZE][1] = relative_speed[other_robot_id%FLOCK_SIZE][1]*0.0 + 1.0*(1000/TIME_STEP)*(relative_pos[other_robot_id%FLOCK_SIZE][1]-prev_relative_pos[other_robot_id%FLOCK_SIZE][1]);		
+
+			/* Send Value*/		
+			//char tmp[128];
+			//sprintf(tmp, "Receive successful : %d  - distance=%f \t direction=%f \n", val, (double)imsg.distance, (double)imsg.direction);
+			//btcomSendString(tmp);
+		}
 	}
-	*/
+	else if (imsg.error > 0)
+	{
+		//btcomSendString("Receive failed \n");		
+	}
+	// else imsg.error == -1 -> no message available in the queue
+
+	if (imsg.error != -1) i++;
 }
 
 
 // the main function
 int main(){ 
 	int msl, msr;			// Wheel speeds
-	/*Webots 2018b*/
-	float msl_w, msr_w;
-	/*Webots 2018b*/
+
 	int bmsl, bmsr, sum_sensors;	// Braitenberg parameters
 	int i;				// Loop counter
 	int distances[NB_SENSORS];	// Array for the distance sensor readings
@@ -375,8 +363,7 @@ int main(){
 	max_sens = 0; 
 	
 	// Forever
-	for(int step=0;step<2000;step++){ //		RECHECK IF STIL THE SAME
-           // printf("step %d /n",step);
+	for(int step=0;step<2000;step++){ //		RECHECK IF STIL THE SAME	probably yes
 
 		bmsl = 0; bmsr = 0;
                 sum_sensors = 0;
@@ -385,13 +372,13 @@ int main(){
 		/* Braitenberg */
 		for(i=0;i<NB_SENSORS;i++) 
 		{
-			 //			distances[i]=wb_distance_sensor_get_value(ds[i]); //Read sensor values
-                            sum_sensors += distances[i]; // Add up sensor values
-                            max_sens = max_sens>distances[i]?max_sens:distances[i]; // Check if new highest sensor value
+			distances[i]=e_get_prox(i); //Read sensor values
+			sum_sensors += distances[i]; // Add up sensor values
+			max_sens = max_sens>distances[i]?max_sens:distances[i]; // Check if new highest sensor value
 
-                            // Weighted sum of distance sensor values for Braitenburg vehicle
-                            bmsr +=  e_puck_matrix[i] *distances[i];
-                            bmsl +=  e_puck_matrix[i+NB_SENSORS]*distances[i];
+			// Weighted sum of distance sensor values for Braitenburg vehicle
+			bmsr +=  e_puck_matrix[i] *distances[i];
+			bmsl +=  e_puck_matrix[i+NB_SENSORS]*distances[i];
                  }
 
 		 // Adapt Braitenberg values (empirical tests)
@@ -400,15 +387,15 @@ int main(){
               
 		/* Send and get information */
 		send_ping();  // sending a ping to other robot, so they can measure their distance to this robot
+		//WARNING: here we will maybe get some anormal functioning: how do we ensure that the sending and reading happens synchroniously? (that every robot receives every other robots messages? that when one is reading, others are receiving?) Should we maybe do a background function that sends the message contiously?
 
 		/// Compute self position
 		prev_my_position[0] = my_position[0];
 		prev_my_position[1] = my_position[1];
 		
 		update_self_motion(msl,msr);
-//		printf("robot %d position: %f %f %f \n", robot_id, my_position[0], my_position[1], my_position[2]);
 		
-		process_received_ping_messages();
+		process_received_ping_messages(); //WARNING: here we will maybe get some anormal functioning: how do we ensure that the sending and reading happens synchroniously? (that every robot receives every other robots messages? that when one is reading, others are receiving?) Should we maybe do a background function that sends the message contiously?
 
 		speed[robot_id][0] = (1000/TIME_STEP)*(my_position[0]-prev_my_position[0]);
 		speed[robot_id][1] = (1000/TIME_STEP)*(my_position[1]-prev_my_position[1]);
@@ -432,19 +419,14 @@ int main(){
 		
                   
          	limit_duo_proportional(&msl, &msr, MAX_SPEED);
-                  
-		/*Webots 2018b*/
-		// Set speed
-		//			msl_w = msl*MAX_SPEED_WEB/1000;
-      	        //			msr_w = msr*MAX_SPEED_WEB/1000;
-                      
-		//			wb_motor_set_velocity(left_motor, msl_w);
-                //			wb_motor_set_velocity(right_motor, msr_w);
-		//wb_differential_wheels_set_speed(msl,msr);
-		/*Webots 2018b*/
-    
-		// Continue one step
-		//			wb_robot_step(TIME_STEP);
+                 
+
+		e_set_speed_left(msl);
+		e_set_speed_right(msr);
+		// DO A TIME STEP (if possible)
+		//potential problem: odometry will work terribly bad, so we could use the motors get step and set steps functions, and not using any TIME_STEP at all.
+ 
+		//WARNING: RECHECK IF THE REAL TIME STEP IS THE ONE WE THINK; and if we're not spending too much time computing, sending, receiving, etc (besides the waiting step)
 	}
 }  
   

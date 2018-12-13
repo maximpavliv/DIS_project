@@ -389,8 +389,8 @@ void process_received_ping_messages(void)
 		inbuffer = (char*) wb_receiver_get_data(receiver);
 		message_direction = wb_receiver_get_emitter_direction(receiver);
 		message_rssi = wb_receiver_get_signal_strength(receiver);
-		double y = message_direction[2] + gaussianNoise(0,0);
-		double x = message_direction[0] + gaussianNoise(0,0);
+		double y = message_direction[2];
+		double x = message_direction[0];
 
 		other_robot_id = (int)(inbuffer[5]-'0');  // since the name of the sender is in the received message. Note: this does not work for robots having id bigger than 9!
                       
@@ -402,7 +402,7 @@ void process_received_ping_messages(void)
                           //Here we quanticise the direction, like its is done with the real epucks
                           theta = quanticised_theta(theta); //We can comment out this line to skip quantisation
                           theta = theta + my_position[2]; // find the relative theta;
-            	    range = sqrt((1/message_rssi));
+            	    	  range = sqrt((1/message_rssi));
     		
             	    //this is in meters.
             	    //We add some noise to the distance measurement, respecting with the std we measured with real epucks, for a maximal distance between them (around 20cm)
