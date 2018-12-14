@@ -99,7 +99,7 @@ static void reset()
 	e_init_motors();
 	e_start_agendas_processing();
 
-	e_calibrate_ir(); //DONT KNOW IF GONNA NEED CALIBRATION OR NOT
+	//e_calibrate_ir(); //DONT KNOW IF GONNA NEED CALIBRATION OR NOT
 
 	ircomStart();
 	ircomEnableContinuousListening();
@@ -344,7 +344,6 @@ void process_received_ping_messages(void)
 	}
 	// else imsg.error == -1 -> no message available in the queue
 
-	if (imsg.error != -1) i++;
 }
 
 
