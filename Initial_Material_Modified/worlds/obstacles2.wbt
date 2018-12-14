@@ -153,7 +153,7 @@ DEF long_rock_6 Solid {
   }
 }
 DEF rock Solid {
-  translation -0.23172464853046426 4.440892098500626e-15 -0.3504211216192865
+  translation -0.20169571624367344 4.440892098500626e-15 -0.40911657548162017
   rotation 0 1 0 5.02662
   children [
     Shape {
@@ -425,7 +425,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation 0.9183717605981461 -8.881784197001252e-16 -0.43701743896633083
+  translation 0.9105031232614296 -8.881784197001252e-16 -0.5518745838967263
   children [
     Shape {
       appearance Appearance {
@@ -473,7 +473,7 @@ DEF rock Solid {
   }
 }
 DEF rock Solid {
-  translation 0.361765700940353 -3.6415315207705135e-14 0.16435893304237137
+  translation 0.33471134757272614 -3.730349362740526e-14 0.19727208322271483
   children [
     Shape {
       appearance Appearance {

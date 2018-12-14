@@ -418,7 +418,7 @@ void process_received_ping_messages(void)
     		    relative_pos[other_robot_id%FLOCK_SIZE][0] = range*cos(theta);  // relative x pos
     		    relative_pos[other_robot_id%FLOCK_SIZE][1] = -1.0 * range*sin(theta);   // relative y pos
     
-    		    printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my theta %g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x),my_position[2]*180.0/3.141592);
+    		    //printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my theta %g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],-atan2(y,x),my_position[2]*180.0/3.141592);
     		
         		    relative_speed[other_robot_id%FLOCK_SIZE][0] = relative_speed[other_robot_id%FLOCK_SIZE][0]*0.0 + 1.0*(1000/TIME_STEP)*(relative_pos[other_robot_id%FLOCK_SIZE][0]-prev_relative_pos[other_robot_id%FLOCK_SIZE][0]);
         		    relative_speed[other_robot_id%FLOCK_SIZE][1] = relative_speed[other_robot_id%FLOCK_SIZE][1]*0.0 + 1.0*(1000/TIME_STEP)*(relative_pos[other_robot_id%FLOCK_SIZE][1]-prev_relative_pos[other_robot_id%FLOCK_SIZE][1]);		
