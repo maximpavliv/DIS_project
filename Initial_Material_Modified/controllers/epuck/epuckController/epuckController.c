@@ -35,7 +35,7 @@
 #define MAX_SENS          4096    // Maximum sensibility value
 #define MAX_SPEED         1000     // Maximum speed
 #define FLOCK_SIZE	  2	  // Size of flock
-#define TIME_STEP	  64	  // [ms] Length of time step
+//#define TIME_STEP	  64	  // [ms] Length of time step
 #define M_PI       3.14159265359
 
 #define AXLE_LENGTH 		0.052	// Distance between wheels of robot (meters)
@@ -75,6 +75,8 @@ float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules o
 //int initialized[FLOCK_SIZE];		// != 0 if initial positions have been received of our tribe
 float migr[2] = {0.0,-10.0};	        // Migration vector
 
+double time_step;
+
 //float theta_robots[FLOCK_SIZE];
 
 int my_tribe;
@@ -90,6 +92,50 @@ int getselector()
  * Reset the robot's devices and get its ID
  */
 
+static void reset() 
+{
+	// Initialization functions from the provided 
+	e_init_port();
+	e_init_ad_scan();
+	e_init_uart1();
+	e_led_clear();	
+	e_init_motors();
+	e_start_agendas_processing();
+
+	//e_calibrate_ir(); //DONT KNOW IF GONNA NEED CALIBRATION OR NOT
+
+	ircomStart();
+	ircomEnableContinuousListening();
+	ircomListen();
+
+	// Reset if Power on (some problem for few robots)
+	if (RCONbits.POR) {
+		RCONbits.POR = 0;
+		__asm__ volatile ("reset");
+	}
+
+	btcomWaitForCommand('s');
+
+	int selector_value = getselector();
+	if(selector_value>=0 && selector_value<=9)
+	{
+		robot_id = selector_value;
+	}	
+	else
+	{
+		btcomSendString("ERROR: SELECTOR NOT BETWEEN 0 AND 9!!!\n\n");
+	}	
+	if(robot_id < FLOCK_SIZE)	//NEED TO CHANGE THIS A LITTLE maybe
+               my_tribe = TRIBE_A;
+           else
+               my_tribe = TRIBE_B;
+  
+/*	for(i=0; i<FLOCK_SIZE; i++) 
+	{
+		initialized[i] = 0;		  // Set initialization to 0 (= not yet initialized)
+	}
+*/	
+}
 
 void limit_duo_proportional(int *number_1, int *number_2, int limit) {
 
@@ -115,16 +161,25 @@ void limit_duo_proportional(int *number_1, int *number_2, int limit) {
         }        
 }
 
+void compute_time_step() {
+	time_step = ircomGetTime()*81.3/1000000;
+	ircomResetTime();
+}
+
 
 /*
  * Updates robot position with wheel speeds
  */
 void update_self_motion(int msl, int msr) { 
 	float theta = my_position[2];
-  
 	// Compute deltas of the robot
-	float dr = (float)msr * SPEED_UNIT_RADS * WHEEL_RADIUS * TIME_STEP/1000;
-	float dl = (float)msl * SPEED_UNIT_RADS * WHEEL_RADIUS * TIME_STEP/1000;
+//	float dr = (float)msr * SPEED_UNIT_RADS * WHEEL_RADIUS * TIME_STEP/1000;
+//	float dl = (float)msl * SPEED_UNIT_RADS * WHEEL_RADIUS * TIME_STEP/1000;
+	long int steps_left = e_get_steps_left();
+	long int steps_right = e_get_steps_right();
+	float dr = (float)steps_right*WHEEL_RADIUS*2*3.1416/1000;
+	float dl = (float)steps_left*WHEEL_RADIUS*2*3.1416/1000;
+
 	float du = (dr + dl)/2.0;
 	float dtheta = (dr - dl)/AXLE_LENGTH;
   
@@ -140,7 +195,9 @@ void update_self_motion(int msl, int msr) {
 	// Keep orientation within 0, 2pi
 	if (my_position[2] > 2*M_PI) my_position[2] -= 2.0*M_PI;
 	if (my_position[2] < 0) my_position[2] += 2.0*M_PI;
-	
+
+	e_set_steps_left(0);		// set motor steps counter // modified by bahr
+	e_set_steps_right(0);		// set motor steps counter // modified by bahr
 }
 
 /*
@@ -270,49 +327,46 @@ void process_received_ping_messages(void)
 
 	// ircomData.messagesCount;		//messages dans la cue. 
 	IrcomMessage imsg;
-	ircomPopMessage(&imsg);
-	if (imsg.error == 0)
+	while(ircomData.messagesCount != 0)
 	{
-		//e_set_led(1, 2);
-		int other_robot_id = (int) imsg.value;
-		if(((other_robot_id<5) && my_tribe==TRIBE_A) || ((other_robot_id>=5) && my_tribe==TRIBE_B))
+		ircomPopMessage(&imsg);
+		if (imsg.error == 0)
 		{
-			double range = imsg.distance;
-			double theta = imsg.direction;
-			theta += my_position[2];
+			//e_set_led(1, 2);
+			int other_robot_id = (int) imsg.value;
+			if(((other_robot_id<FLOCK_SIZE) && my_tribe==TRIBE_A) || ((other_robot_id>=FLOCK_SIZE) && my_tribe==TRIBE_B))
+			{
+				double range = imsg.distance;
+				double theta = imsg.direction;
+				theta += my_position[2];
 
-			prev_relative_pos[other_robot_id%FLOCK_SIZE][0] = relative_pos[other_robot_id%FLOCK_SIZE][0];
-			prev_relative_pos[other_robot_id%FLOCK_SIZE][1] = relative_pos[other_robot_id%FLOCK_SIZE][1];
+				prev_relative_pos[other_robot_id%FLOCK_SIZE][0] = relative_pos[other_robot_id%FLOCK_SIZE][0];
+				prev_relative_pos[other_robot_id%FLOCK_SIZE][1] = relative_pos[other_robot_id%FLOCK_SIZE][1];
 
-			relative_pos[other_robot_id%FLOCK_SIZE][0] = range*cos(theta);  // relative x pos
-			relative_pos[other_robot_id%FLOCK_SIZE][1] = 1.0 * range*sin(theta);   // relative y pos 	//WARNING: there was initially a minus sign here, I deleted it because I think it is there because of the webot's z axis inversion. But I'm not totally sure
-			double c=range*cos(theta);
+				relative_pos[other_robot_id%FLOCK_SIZE][0] = range*cos(theta);  // relative x pos
+				relative_pos[other_robot_id%FLOCK_SIZE][1] = 1.0 * range*sin(theta);   // relative y pos 	//WARNING: there was initially a minus sign here, I deleted it because I think it is there because of the webot's z axis inversion. But I'm not totally sure 
+				
+			    	relative_speed[other_robot_id%FLOCK_SIZE][0] = relative_speed[other_robot_id%FLOCK_SIZE][0]*0.0 + 1.0*(1000/time_step)*(relative_pos[other_robot_id%FLOCK_SIZE][0]-prev_relative_pos[other_robot_id%FLOCK_SIZE][0]);
+			    	relative_speed[other_robot_id%FLOCK_SIZE][1] = relative_speed[other_robot_id%FLOCK_SIZE][1]*0.0 + 1.0*(1000/time_step)*(relative_pos[other_robot_id%FLOCK_SIZE][1]-prev_relative_pos[other_robot_id%FLOCK_SIZE][1]);		
 
-			/* Send Value*/		
-			char tmp2[50];
-			sprintf(tmp2, "Relative positon: %f  - distance=%f \t direction=%f \n",(double) c, (double) range, (double) theta);
-			btcomSendString(tmp2);
-			
-		    	relative_speed[other_robot_id%FLOCK_SIZE][0] = relative_speed[other_robot_id%FLOCK_SIZE][0]*0.0 + 1.0*(1000/TIME_STEP)*(relative_pos[other_robot_id%FLOCK_SIZE][0]-prev_relative_pos[other_robot_id%FLOCK_SIZE][0]);
-		    	relative_speed[other_robot_id%FLOCK_SIZE][1] = relative_speed[other_robot_id%FLOCK_SIZE][1]*0.0 + 1.0*(1000/TIME_STEP)*(relative_pos[other_robot_id%FLOCK_SIZE][1]-prev_relative_pos[other_robot_id%FLOCK_SIZE][1]);		
-
-			/* Send Value*/		
-			//char tmp[128];
-			//sprintf(tmp, "Receive successful : %d  - distance=%f \t direction=%f \n", val, (double)imsg.distance, (double)imsg.direction);
-			//btcomSendString(tmp);
+				/* Send Value*/		
+				//char tmp[128];
+				//sprintf(tmp, "Receive successful : %d  - distance=%f \t direction=%f \n", val, (double)imsg.distance, (double)imsg.direction);
+				//btcomSendString(tmp);
+			}
 		}
+		else if (imsg.error > 0)
+		{
+			//btcomSendString("Receive failed \n");		
+		}
+		// else imsg.error == -1 -> no message available in the queue
 	}
-	else if (imsg.error > 0)
-	{
-		//btcomSendString("Receive failed \n");		
-	}
-	// else imsg.error == -1 -> no message available in the queue
 
 }
 
+
 // the main function
 int main(){ 
-	btcomSendString("Hello main! ");
 	int msl, msr;			// Wheel speeds
 
 	int bmsl, bmsr, sum_sensors;	// Braitenberg parameters
@@ -320,56 +374,18 @@ int main(){
 	int distances[NB_SENSORS];	// Array for the distance sensor readings
 	int max_sens;			// Store highest sensor value
 	int step;
-	//void reset() 
-// Resetting the robot
-	// Initialization functions from the provided 
 
-	e_init_port();
-	e_init_ad_scan();
-	e_init_uart1();
-	e_led_clear();	
-	e_init_motors();
-	e_start_agendas_processing();
-	e_calibrate_ir(); //DONT KNOW IF GONNA NEED CALIBRATION OR NOT
-    // wait for s to start
-	    btcomWaitForCommand('s');
-    
-	btcomSendString("==== READY - IR TESTING ====\n\n");
-	ircomStart();
-	ircomEnableContinuousListening();
-	ircomListen();
- // wait for s to start
-	    btcomWaitForCommand('s');
-	    btcomSendString("==== READY - IR STARTED====\n\n");
-	// Reset if Power on (some problem for few robots)
-	if (RCONbits.POR) {
-		RCONbits.POR = 0;
-		__asm__ volatile ("reset");
-	}
-
-	btcomSendString("==== GETTING SELECTOR ====\n\n");
-	int selector_value = getselector();
-	if(selector_value>=0 && selector_value<=9)
-	{
-		robot_id = selector_value;
-	}	
-	else
-	{
-		btcomSendString("ERROR: SELECTOR NOT BETWEEN 0 AND 9!!!\n\n");
-	}	
-	if(robot_id < 5)	//NEED TO CHANGE THIS A LITTLE maybe
-               my_tribe = TRIBE_A;
-           else
-               my_tribe = TRIBE_B;
-btcomSendString("==== SELECTOR DONE ====\n\n");
-// Finish reseting the robot
+ 	reset();			// Resetting the robot
+//	btcomWaitForCommand('s');
+//	e_set_led(1, 2);
+	btcomSendString("Reset done\n\n");
 
 	msl = 0; msr = 0; 
 	max_sens = 0; 
 	
 	// Forever
 	for(step=0;step<2000;step++){ //		RECHECK IF STIL THE SAME	probably yes
-btcomSendString("==== DANS LA FOR ====\n\n");
+
 		bmsl = 0; bmsr = 0;
                   sum_sensors = 0;
 		max_sens = 0;
@@ -389,7 +405,7 @@ btcomSendString("==== DANS LA FOR ====\n\n");
 		 // Adapt Braitenberg values (empirical tests)
                  bmsl/=MIN_SENS; bmsr/=MIN_SENS;
                  bmsl+=66; bmsr+=72;
-              btcomSendString("==== BRAITENBERG DONE ====\n\n");
+              
 		/* Send and get information */
 		send_ping();  // sending a ping to other robot, so they can measure their distance to this robot
 		//WARNING: here we will maybe get some anormal functioning: how do we ensure that the sending and reading happens synchroniously? (that every robot receives every other robots messages? that when one is reading, others are receiving?) Should we maybe do a background function that sends the message contiously?
@@ -400,10 +416,12 @@ btcomSendString("==== DANS LA FOR ====\n\n");
 		
 		update_self_motion(msl,msr);
 		
+		compute_time_step();
+
 		process_received_ping_messages(); //WARNING: here we will maybe get some anormal functioning: how do we ensure that the sending and reading happens synchroniously? (that every robot receives every other robots messages? that when one is reading, others are receiving?) Should we maybe do a background function that sends the message contiously?
 
-		speed[robot_id][0] = (1000/TIME_STEP)*(my_position[0]-prev_my_position[0]);
-		speed[robot_id][1] = (1000/TIME_STEP)*(my_position[1]-prev_my_position[1]);
+		speed[robot_id][0] = (1000/time_step)*(my_position[0]-prev_my_position[0]);
+		speed[robot_id][1] = (1000/time_step)*(my_position[1]-prev_my_position[1]);
     
 		// Reynold's rules with all previous info (updates the speed[][] table)
 		reynolds_rules();
@@ -428,12 +446,13 @@ btcomSendString("==== DANS LA FOR ====\n\n");
 
 		e_set_speed_left(msl);
 		e_set_speed_right(msr);
-		// DO A TIME STEP (if possible)
+
+		btcomSendString("STEP\n\n");
+
 		//potential problem: odometry will work terribly bad, so we could use the motors get step and set steps functions, and not using any TIME_STEP at all.
  
 		//WARNING: RECHECK IF THE REAL TIME STEP IS THE ONE WE THINK; and if we're not spending too much time computing, sending, receiving, etc (besides the waiting step)
 	}
-ircomStop();
-    return 0;
+	return 0;
 }  
   
