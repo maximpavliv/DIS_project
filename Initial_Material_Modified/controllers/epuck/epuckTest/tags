@@ -25,8 +25,6 @@ TIME_STEP	epuckTest.c	43;"	d	file:
 TRIBE_A	epuckTest.c	37;"	d	file:
 TRIBE_B	epuckTest.c	38;"	d	file:
 WHEEL_RADIUS	epuckTest.c	48;"	d	file:
-bmsl	epuckTest.c	/^int bmsl, bmsr;	\/\/ Braitenberg parameters$/;"	v
-bmsr	epuckTest.c	/^int bmsl, bmsr;	\/\/ Braitenberg parameters$/;"	v
 compute_time_step	epuckTest.c	/^void compute_time_step() {$/;"	f
 compute_wheel_speeds	epuckTest.c	/^void compute_wheel_speeds(int *msl, int *msr) $/;"	f
 e_puck_matrix	epuckTest.c	/^int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; \/\/ Maze$/;"	v
@@ -37,7 +35,7 @@ max_sens	epuckTest.c	/^int max_sens;			\/\/ Store highest sensor value$/;"	v
 migr	epuckTest.c	/^float migr[2] = {0.0,-10.0};	        \/\/ Migration vector$/;"	v
 my_position	epuckTest.c	/^float my_position[3];     		\/\/ X, Z, Theta of the current robot$/;"	v
 my_tribe	epuckTest.c	/^int my_tribe;$/;"	v
-obstacleAvoidance	epuckTest.c	/^void obstacleAvoidance()$/;"	f
+obstacleAvoidance	epuckTest.c	/^void obstacleAvoidance(int *bmsl,int *bmsr)$/;"	f
 obstacleAvoidanceSpeed	epuckTest.c	/^int obstacleAvoidanceSpeed = 500.0;$/;"	v
 obstacleAvoidanceThreshold	epuckTest.c	/^int obstacleAvoidanceThreshold = 30.0;$/;"	v
 prev_my_position	epuckTest.c	/^float prev_my_position[3];  		\/\/ X, Z, Theta of the current robot in the previous time step$/;"	v
