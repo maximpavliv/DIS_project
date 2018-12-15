@@ -90,49 +90,6 @@ int getselector()
  * Reset the robot's devices and get its ID
  */
 
-static void reset() 
-{
-	// Initialization functions from the provided 
-	e_init_port();
-	e_init_ad_scan();
-	e_init_uart1();
-	e_led_clear();	
-	e_init_motors();
-	e_start_agendas_processing();
-
-	//e_calibrate_ir(); //DONT KNOW IF GONNA NEED CALIBRATION OR NOT
-
-	ircomStart();
-	ircomEnableContinuousListening();
-	ircomListen();
-
-	// Reset if Power on (some problem for few robots)
-	if (RCONbits.POR) {
-		RCONbits.POR = 0;
-		__asm__ volatile ("reset");
-	}
-
-
-	int selector_value = getselector();
-	if(selector_value>=0 && selector_value<=9)
-	{
-		robot_id = selector_value;
-	}	
-	else
-	{
-		btcomSendString("ERROR: SELECTOR NOT BETWEEN 0 AND 9!!!\n\n");
-	}	
-	if(robot_id < 5)	//NEED TO CHANGE THIS A LITTLE maybe
-               my_tribe = TRIBE_A;
-           else
-               my_tribe = TRIBE_B;
-  
-/*	for(i=0; i<FLOCK_SIZE; i++) 
-	{
-		initialized[i] = 0;		  // Set initialization to 0 (= not yet initialized)
-	}
-*/	
-}
 
 void limit_duo_proportional(int *number_1, int *number_2, int limit) {
 
@@ -328,7 +285,13 @@ void process_received_ping_messages(void)
 			prev_relative_pos[other_robot_id%FLOCK_SIZE][1] = relative_pos[other_robot_id%FLOCK_SIZE][1];
 
 			relative_pos[other_robot_id%FLOCK_SIZE][0] = range*cos(theta);  // relative x pos
-			relative_pos[other_robot_id%FLOCK_SIZE][1] = 1.0 * range*sin(theta);   // relative y pos 	//WARNING: there was initially a minus sign here, I deleted it because I think it is there because of the webot's z axis inversion. But I'm not totally sure 
+			relative_pos[other_robot_id%FLOCK_SIZE][1] = 1.0 * range*sin(theta);   // relative y pos 	//WARNING: there was initially a minus sign here, I deleted it because I think it is there because of the webot's z axis inversion. But I'm not totally sure
+			double c=range*cos(theta);
+
+			/* Send Value*/		
+			char tmp2[50];
+			sprintf(tmp2, "Relative positon: %f  - distance=%f \t direction=%f \n",(double) c, (double) range, (double) theta);
+			btcomSendString(tmp2);
 			
 		    	relative_speed[other_robot_id%FLOCK_SIZE][0] = relative_speed[other_robot_id%FLOCK_SIZE][0]*0.0 + 1.0*(1000/TIME_STEP)*(relative_pos[other_robot_id%FLOCK_SIZE][0]-prev_relative_pos[other_robot_id%FLOCK_SIZE][0]);
 		    	relative_speed[other_robot_id%FLOCK_SIZE][1] = relative_speed[other_robot_id%FLOCK_SIZE][1]*0.0 + 1.0*(1000/TIME_STEP)*(relative_pos[other_robot_id%FLOCK_SIZE][1]-prev_relative_pos[other_robot_id%FLOCK_SIZE][1]);		
@@ -347,9 +310,9 @@ void process_received_ping_messages(void)
 
 }
 
-
 // the main function
 int main(){ 
+	btcomSendString("Hello main! ");
 	int msl, msr;			// Wheel speeds
 
 	int bmsl, bmsr, sum_sensors;	// Braitenberg parameters
@@ -357,15 +320,56 @@ int main(){
 	int distances[NB_SENSORS];	// Array for the distance sensor readings
 	int max_sens;			// Store highest sensor value
 	int step;
-	
- 	reset();			// Resetting the robot
+	//void reset() 
+// Resetting the robot
+	// Initialization functions from the provided 
+
+	e_init_port();
+	e_init_ad_scan();
+	e_init_uart1();
+	e_led_clear();	
+	e_init_motors();
+	e_start_agendas_processing();
+	e_calibrate_ir(); //DONT KNOW IF GONNA NEED CALIBRATION OR NOT
+    // wait for s to start
+	    btcomWaitForCommand('s');
+    
+	btcomSendString("==== READY - IR TESTING ====\n\n");
+	ircomStart();
+	ircomEnableContinuousListening();
+	ircomListen();
+ // wait for s to start
+	    btcomWaitForCommand('s');
+	    btcomSendString("==== READY - IR STARTED====\n\n");
+	// Reset if Power on (some problem for few robots)
+	if (RCONbits.POR) {
+		RCONbits.POR = 0;
+		__asm__ volatile ("reset");
+	}
+
+	btcomSendString("==== GETTING SELECTOR ====\n\n");
+	int selector_value = getselector();
+	if(selector_value>=0 && selector_value<=9)
+	{
+		robot_id = selector_value;
+	}	
+	else
+	{
+		btcomSendString("ERROR: SELECTOR NOT BETWEEN 0 AND 9!!!\n\n");
+	}	
+	if(robot_id < 5)	//NEED TO CHANGE THIS A LITTLE maybe
+               my_tribe = TRIBE_A;
+           else
+               my_tribe = TRIBE_B;
+btcomSendString("==== SELECTOR DONE ====\n\n");
+// Finish reseting the robot
 
 	msl = 0; msr = 0; 
 	max_sens = 0; 
 	
 	// Forever
 	for(step=0;step<2000;step++){ //		RECHECK IF STIL THE SAME	probably yes
-
+btcomSendString("==== DANS LA FOR ====\n\n");
 		bmsl = 0; bmsr = 0;
                   sum_sensors = 0;
 		max_sens = 0;
@@ -385,7 +389,7 @@ int main(){
 		 // Adapt Braitenberg values (empirical tests)
                  bmsl/=MIN_SENS; bmsr/=MIN_SENS;
                  bmsl+=66; bmsr+=72;
-              
+              btcomSendString("==== BRAITENBERG DONE ====\n\n");
 		/* Send and get information */
 		send_ping();  // sending a ping to other robot, so they can measure their distance to this robot
 		//WARNING: here we will maybe get some anormal functioning: how do we ensure that the sending and reading happens synchroniously? (that every robot receives every other robots messages? that when one is reading, others are receiving?) Should we maybe do a background function that sends the message contiously?
@@ -429,5 +433,7 @@ int main(){
  
 		//WARNING: RECHECK IF THE REAL TIME STEP IS THE ONE WE THINK; and if we're not spending too much time computing, sending, receiving, etc (besides the waiting step)
 	}
+ircomStop();
+    return 0;
 }  
   

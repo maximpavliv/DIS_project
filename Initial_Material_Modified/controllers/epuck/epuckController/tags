@@ -38,7 +38,6 @@ prev_relative_pos	epuckController.c	/^float prev_relative_pos[FLOCK_SIZE][3];	\/
 process_received_ping_messages	epuckController.c	/^void process_received_ping_messages(void)$/;"	f
 relative_pos	epuckController.c	/^float relative_pos[FLOCK_SIZE][3];	\/\/ relative X, Z, Theta of all robots of our tribe$/;"	v
 relative_speed	epuckController.c	/^float relative_speed[FLOCK_SIZE][2];	\/\/ Speeds calculated with Reynold's rules of our tribe$/;"	v
-reset	epuckController.c	/^static void reset() $/;"	f	file:
 reynolds_rules	epuckController.c	/^void reynolds_rules() {$/;"	f
 robot_id	epuckController.c	/^int robot_id;	\/\/ Unique robot ID$/;"	v
 send_ping	epuckController.c	/^void send_ping(void)  $/;"	f
