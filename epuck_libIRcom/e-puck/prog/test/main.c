@@ -122,16 +122,18 @@ int main()
 	//while (i < 200)
 	while(1)
 	{
+		char tmp[128];
 	    // ircomListen();
 	    IrcomMessage imsg;
 	    ircomPopMessage(&imsg);
+
+
 	    if (imsg.error == 0)
 	    {
 			e_set_led(1, 2);
 		int val = (int) imsg.value;
 			    
 		// Send Value
-		char tmp[128];
 		sprintf(tmp, "Receive successful : %d  - distance=%f \t direction=%f \n", val, (double)imsg.distance, (double)imsg.direction);
 		btcomSendString(tmp);
 	    }

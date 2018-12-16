@@ -253,6 +253,46 @@ void compute_wheel_speeds(int *msl, int *msr)
  *  Update speed according to Reynold's rules
  */
 
+
+void obstacleAvoidance(int *bmsl,int *bmsr)
+{    
+	
+	int n;
+	int i;
+	double sensorMean[8];
+	double sensors[NB_SENSORS];	// Array for the distance sensor readings
+	int numberOfSamples=30;
+	// check if an obstacle is perceived 
+	sum_sensors=0;*bmsl=0;*bmsr=0;	// Braitenberg parameters
+	// Braitenberg parameters
+
+		for (i=0;i<8;i++)
+			sensorMean[i]=0;	
+		//Compute an average value of each sensor on multiple samples to reduce noise	
+		for (n=0;n<numberOfSamples;n++)
+		{	
+			// Get sensor values
+			for (i = 0; i < 8; i++) {
+				// Use the sensorzero[i] value generated in sensor_calibrate() to zero sensorvalues
+				sensors[i] = e_get_calibrated_prox(i);
+				//linearize the sensor output and compute the average
+				sensorMean[i]+=12.1514*log((double)sensors[i])/(double)numberOfSamples;
+			}
+
+		}
+
+		// Add the weighted sensors values
+		for (i = 0; i < 8; i++) {
+			*bmsr += e_puck_matrix[i] * (int)sensorMean[i];
+			*bmsl += e_puck_matrix[i+NB_SENSORS] * (int)sensorMean[i];
+			sum_sensors += sensorMean[i]; // Add up sensor values
+			max_sens = max_sens>sensorMean[i]?max_sens:sensorMean[i]; // Check if new highest sensor value
+		}
+		*bmsl/=MIN_SENS; *bmsr/=MIN_SENS;
+		*bmsl+=66; *bmsr+=72;
+
+}
+
 void reynolds_rules() {
 	int i, j, k;			// Loop counters
 	float rel_avg_loc[2] = {0,0};	// Flock average positions
@@ -352,11 +392,11 @@ void process_received_ping_messages(void)
 	ircomPopMessage(&imsg);	
 
 
-	if(verbose_count%30 == 0)
-	{
+//	if(verbose_count%30 == 0)
+//	{
 		sprintf(tmp, "error: %d \n", imsg.error);
 		btcomSendString(tmp);
-	}
+//	}
 
 	if(imsg.error != -1)
 	{
@@ -422,6 +462,8 @@ int main(){
 		max_sens = 0;
                 
 		/* Braitenberg */
+		//obstacleAvoidance(*bmsl, *bmsr);
+		
 		for(i=0;i<NB_SENSORS;i++) 
 		{
 			distances[i]=e_get_prox(i); //Read sensor values
@@ -436,7 +478,7 @@ int main(){
 		 // Adapt Braitenberg values (empirical tests)
                  bmsl/=MIN_SENS; bmsr/=MIN_SENS;
                  bmsl+=66; bmsr+=72;
-              
+                
 		/* Send and get information */
 		send_ping();  // sending a ping to other robot, so they can measure their distance to this robot
 		//WARNING: here we will maybe get some anormal functioning: how do we ensure that the sending and reading happens synchroniously? (that every robot receives every other robots messages? that when one is reading, others are receiving?) Should we maybe do a background function that sends the message contiously?

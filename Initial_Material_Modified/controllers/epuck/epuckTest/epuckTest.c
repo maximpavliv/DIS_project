@@ -39,7 +39,7 @@
 #define NB_SENSORS	  8	  // Number of distance sensors
 #define MIN_SENS          350     // Minimum sensibility value
 #define MAX_SENS          4096    // Maximum sensibility value
-#define MAX_SPEED         1000     // Maximum speed
+#define MAX_SPEED         300     // Maximum speed
 #define TIME_STEP	  64	  // [ms] Length of time step
 #define M_PI       3.14159265359
 
@@ -56,7 +56,7 @@
 #define RULE3_WEIGHT        (0.02/10)   // Weight of consistency rule. default 1.0/10
 #define MIGRATION_WEIGHT    (0.05/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
-#define BRT_WEIGHT           10
+#define BRT_WEIGHT         10
 #define MIGRATORY_URGE 1 // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
@@ -64,6 +64,7 @@
 
 float sensorDir[NB_IR_SENSORS] = {0.2967, 0.8727, 1.5708, 2.6180, 3.6652, 4.7124, 5.4105, 5.9865};
 int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // Maze
+//int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,18,28,36,10,8,-36,-58,-72}; // Maze
 int my_tribe;
 int robot_id;	// Unique robot ID
 
@@ -71,8 +72,8 @@ float relative_pos[FLOCK_SIZE][3];	// relative X, Z, Theta of all robots of our 
 float prev_relative_pos[FLOCK_SIZE][3];	// Previous relative  X, Z, Theta values of our tribe
 float my_position[3];     		// X, Z, Theta of the current robot
 float prev_my_position[3];  		// X, Z, Theta of the current robot in the previous time step
-float speed[FLOCK_SIZE][2];		// Speeds calculated with Reynold's rules of our tribe
-float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules of our tribe
+float speed[2];		// Speeds calculated with Reynold's rules of our tribe
+//float relative_speed[FLOCK_SIZE][2];	// Speeds calculated with Reynold's rules of our tribe
 float time_step;
 
 int sum_sensors;	// Braitenberg parameters
@@ -115,24 +116,23 @@ void limit_duo_proportional(int *number_1, int *number_2, int limit) {
 
 
 
-void compute_time_step() {
-	time_step = ircomGetTime()*81.3/1000000;
-	ircomResetTime();
-}
 
-void update_self_motion() { 
+void update_self_motion(int msl, int msr) { 
 	float theta = my_position[2];
-      long int steps_left=e_get_steps_left();
-      long int steps_right = e_get_steps_right();
 	// Compute deltas of the robot
-	float dr = (float)steps_right * WHEEL_RADIUS *2* M_PI/1000;
-		float dl = (float)steps_left * WHEEL_RADIUS *2* M_PI/1000;
+//	float dr = (float)msr * SPEED_UNIT_RADS * WHEEL_RADIUS * TIME_STEP/1000;
+//	float dl = (float)msl * SPEED_UNIT_RADS * WHEEL_RADIUS * TIME_STEP/1000;
+	long int steps_left = e_get_steps_left();
+	long int steps_right = e_get_steps_right();
+	float dr = (float)steps_right*WHEEL_RADIUS*2*M_PI/1000;
+	float dl = (float)steps_left*WHEEL_RADIUS*2*M_PI/1000;
+
 	float du = (dr + dl)/2.0;
-	float dtheta = (dr - dl)/AXLE_LENGTH;
+	float dtheta = (dl - dr)/AXLE_LENGTH;
   
 	// Compute deltas in the environment
-	float dx = -du * sinf(theta);
-	float dz = -du * cosf(theta);
+	float dx = du * sinf(theta);
+	float dz = du * cosf(theta);
   
 	// Update position
 	my_position[0] += dx;
@@ -142,10 +142,9 @@ void update_self_motion() {
 	// Keep orientation within 0, 2pi
 	if (my_position[2] > 2*M_PI) my_position[2] -= 2.0*M_PI;
 	if (my_position[2] < 0) my_position[2] += 2.0*M_PI;
-	
-	e_set_steps_left(0);
-	e_set_steps_right(0);
-	
+
+	e_set_steps_left(0);		// set motor steps counter // modified by bahr
+	e_set_steps_right(0);		// set motor steps counter // modified by bahr
 }
 
 void compute_wheel_speeds(int *msl, int *msr) 
@@ -154,13 +153,13 @@ void compute_wheel_speeds(int *msl, int *msr)
 	//float x = speed[robot_id][0]*cosf(loc[robot_id][2]) - speed[robot_id][1]*sinf(loc[robot_id][2]); // x in robot coordinates
 	//float z = -speed[robot_id][0]*sinf(loc[robot_id][2]) - speed[robot_id][1]*cosf(loc[robot_id][2]); // z in robot coordinates
 	
-	float x = speed[robot_id][0]*cosf(my_position[2]) + speed[robot_id][1]*sinf(my_position[2]); // x in robot coordinates
-	float z = -speed[robot_id][0]*sinf(my_position[2]) + speed[robot_id][1]*cosf(my_position[2]); // z in robot coordinates
+	float x = speed[0]*cosf(my_position[2]) - speed[1]*sinf(my_position[2]); // x in robot coordinates
+	float z = speed[0]*sinf(my_position[2]) + speed[1]*cosf(my_position[2]); // z in robot coordinates  //WWWarning recheck sign here
 
 	float Ku = 0.2;   // Forward control coefficient 0.2
 	float Kw = 1;  // Rotational control coefficient 1
 	float range = sqrtf(x*x + z*z);	  // Distance to the wanted position
-	float bearing = -atan2(x, z);	  // Orientation of the wanted position
+	float bearing = atan2(x, z);	  // Orientation of the wanted position
 	
 	// Compute forward control
 	float u = Ku*range*cosf(bearing);
@@ -169,17 +168,21 @@ void compute_wheel_speeds(int *msl, int *msr)
 	
 	// Convert to wheel speeds!
 	
-	*msl = (u - AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
-	*msr = (u + AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
+	*msl = (u + AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
+	*msr = (u - AXLE_LENGTH*w/2.0) * (1000.0 / WHEEL_RADIUS);
 }
 
 
+void send_ping();
+void receive_ping();
 void obstacleAvoidance(int *bmsl,int *bmsr);
 void reynolds_rules();
 int main()
 {
 
     // init robot
+    int bmsl, bmsr;	// Braitenberg parameters
+	int msl, msr;	// Braitenberg parameters
     e_init_port();
     e_init_ad_scan();
     e_init_uart1();
@@ -196,7 +199,9 @@ int main()
     ircomStart();
     ircomEnableContinuousListening();
     ircomListen();
-
+    	
+	    max_sens=0;
+for(;;){
 // Finish reseting the robot
     // rely on selector to define the role
 	int selector = getselector();
@@ -220,77 +225,36 @@ int main()
     //e_set_speed_left(100);
 	//e_set_speed_right(100);
 
-	int bmsl, bmsr;	// Braitenberg parameters
+
     obstacleAvoidance(&bmsl,&bmsr);
-	int i;
-	for (i = 0; i < 10; i++)
-	{
-	    // takes ~15knops for a 32window, avoid putting messages too close...
-	    long int j=0;
-	    for(j = 0; j < 10000; j++)	asm("nop");
-          ircomSend(robot_id);	    
-	    while (ircomSendDone() == 0);
-	}
-	
+    
+    send_ping();
+    
 	/// Compute self position
 	prev_my_position[0] = my_position[0];
 	prev_my_position[1] = my_position[1];
 	
-	compute_time_step();
-	update_self_motion();
+	//compute_time_step();
+	update_self_motion(msl,msr);
     
     // acting as receiver
-
-	i = 0;
-	while (i < 1)
-	{
-	    // ircomListen();
-	    IrcomMessage imsg;
-	    ircomPopMessage(&imsg);
-	    if (imsg.error == 0)
-	    {
-			int other_robot_id = (int) imsg.value;
-			//if(((other_robot_id<5) && my_tribe==TRIBE_A) || ((other_robot_id>=5) && my_tribe==TRIBE_B))
-		    //{
-				/* Send Value*/		
-				double range = imsg.distance;
-				double theta = imsg.direction;
-					   theta += my_position[2];
-
-				prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
-				prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
-				relative_pos[other_robot_id][0] = range*cos(theta);  // relative x pos
-				relative_pos[other_robot_id][1] = range*sin(theta);  // relative x pos
-
-				relative_speed[other_robot_id][0] = relative_speed[other_robot_id][0]*0.0 + 1.0*(1000/time_step)*(relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0]);
-				relative_speed[other_robot_id][1] = relative_speed[other_robot_id][1]*0.0 + 1.0*(1000/time_step)*(relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1]);
-
-				//double c=range*cos(theta);
-					//	char tmp2[128];
-				//sprintf(tmp2, "Relative positon: %f  - distance=%f \t direction=%f \n",(double) c, (double) range, (double) theta);
-				//btcomSendString(tmp2);
-				//if (i%10==0) btcomSendString("Receive Success \n");
-				btcomSendString("Receive Success \n");
-			
-	    }//}
-	    else if (imsg.error > 0)
-	    {
-
-	    }
-	    // else imsg.error == -1 -> no message available in the queue
-
-	    if (imsg.error != -1) i++;
-	}
+    receive_ping();
+    
+    double speed_left = msl*2*M_PI*WHEEL_RADIUS/1000;
+	double speed_right = msr*2*M_PI*WHEEL_RADIUS/1000;
+	double speed_center = (speed_left + speed_right)/2;
+	speed[0] = speed_center*sin(my_position[2]); //Recheck signs here
+	speed[1] = speed_center*cos(my_position[2]);
 	
-	
+
 	//Reynolds
     
-	speed[robot_id][0] = (1000/time_step)*(my_position[0]-prev_my_position[0]);
-	speed[robot_id][1] = (1000/time_step)*(my_position[1]-prev_my_position[1]);
+	//speed[robot_id][0] = (1000/time_step)*(my_position[0]-prev_my_position[0]);
+	//speed[robot_id][1] = (1000/time_step)*(my_position[1]-prev_my_position[1]);
     //e_activate_agenda(reynolds_rules, 10000);
     reynolds_rules();
     
-    int msl, msr;	// Braitenberg parameters
+    
     
     // Compute wheels speed from reynold's speed
 
@@ -304,79 +268,98 @@ int main()
 	
 	//Add Braitenberg velociy
     
-	msl += BRT_WEIGHT*bmsl;
-	msr += BRT_WEIGHT*bmsr;
-   limit_duo_proportional(&msl, &msr, MAX_SPEED);
-   	char tmp2[128];
-	sprintf(tmp2, "msl: %f  - msr=%f \n",(double) msl, (double) msr);
-	btcomSendString(tmp2);
+	//msl += BRT_WEIGHT*bmsl;
+	//msr += BRT_WEIGHT*bmsr;
+	
 
+    limit_duo_proportional(&msl, &msr, MAX_SPEED);
+   	//char tmp2[128];
+	//sprintf(tmp2, "msl= %f - msr=%f - bmsl= %f - bmsr=%f \n",  (double) msl, (double)msr, BRT_WEIGHT * (double) bmsl, BRT_WEIGHT * (double)bmsr);
+	//btcomSendString(tmp2);
+	
 	e_set_speed_left(msl);
 	e_set_speed_right(msr);
-	long int j;
-	for(j = 0; j < 1000000; j++)	asm("nop");
+	//int j;
+    //for(j = 0; j < 1000; j++)	asm("nop");
+	
 		// DO A TIME STEP (if possible)
 		//potential problem: odometry will work terribly bad, so we could use the motors get step and set steps functions, and not using any TIME_STEP at all.
  
-		
-    
+}	
+    ircomStop();
    
     return 0;
+    
 }
 
-int obstacleAvoidanceThreshold = 30.0;
+int obstacleAvoidanceThreshold = 50.0;
 int obstacleAvoidanceSpeed = 500.0;
 void obstacleAvoidance(int *bmsl,int *bmsr)
 {    
-    // check if an obstacle is perceived 
-	sum_sensors=0;	// Braitenberg parameters
+	
+	int n;
+	int i;
+	double sensorMean[8];
+	double sensors[NB_SENSORS];	// Array for the distance sensor readings
+	int numberOfSamples=30;
+	// check if an obstacle is perceived 
+	sum_sensors=0;*bmsl=0;*bmsr=0;	// Braitenberg parameters
 	// Braitenberg parameters
-	int distances[NB_SENSORS];	// Array for the distance sensor readings
-	max_sens=0;			// Store highest sensor value
-    int i=0;
-    for (i = 0; i < NB_SENSORS; i++)
-    {
-        distances[i] = e_get_calibrated_prox(i);
-	// if signal above noise
-	    
-	// compute direction to escape
-	 distances[i] = distances[i] - obstacleAvoidanceThreshold;
-	  
-	sum_sensors += distances[i]; // Add up sensor values
-	max_sens = max_sens>distances[i]?max_sens:distances[i]; // Check if new highest sensor value
-	*bmsr +=  e_puck_matrix[i] *distances[i];// Weighted sum of distance sensor values for Braitenburg vehicle
-	*bmsl +=  e_puck_matrix[i+NB_SENSORS]*distances[i];
-     }
-  *bmsl/=MIN_SENS; *bmsr/=MIN_SENS;
-  *bmsl+=66; *bmsr+=72;
-    // change movement direction
-    //e_set_speed_left(bmsl);
-    //e_set_speed_right(bmsr);
-    
-    // advertise obstacle avoidance in progress
-    // return 1;
+
+		for (i=0;i<8;i++)
+			sensorMean[i]=0;	
+		//Compute an average value of each sensor on multiple samples to reduce noise	
+		for (n=0;n<numberOfSamples;n++)
+		{	
+			// Get sensor values
+			for (i = 0; i < 8; i++) {
+				// Use the sensorzero[i] value generated in sensor_calibrate() to zero sensorvalues
+				sensors[i] = e_get_calibrated_prox(i);
+				//linearize the sensor output and compute the average
+				sensorMean[i]+=12.1514*log((double)sensors[i])/(double)numberOfSamples;
+			}
+
+		}
+
+		// Add the weighted sensors values
+		for (i = 0; i < 8; i++) {
+			*bmsr += e_puck_matrix[i] * (int)sensorMean[i];
+			*bmsl += e_puck_matrix[i+NB_SENSORS] * (int)sensorMean[i];
+			sum_sensors += sensorMean[i]; // Add up sensor values
+			max_sens = max_sens>sensorMean[i]?max_sens:sensorMean[i]; // Check if new highest sensor value
+		}
+		*bmsl/=MIN_SENS; *bmsr/=MIN_SENS;
+		*bmsl+=66; *bmsr+=72;
+
+
+		// Speed bounds, to avoid setting to high speeds to the motor
+		if (*bmsl > 1000) {*bmsl = 1000;}
+		if (*bmsr > 1000) {*bmsr = 1000;}
+		if (*bmsl< -1000) {*bmsl = -1000;}
+		if (*bmsr < -1000) {*bmsr= -1000;}
+
 }
 
 
 void reynolds_rules() {
 	int i, j, k;			// Loop counters
 	float rel_avg_loc[2] = {0,0};	// Flock average positions
-	float rel_avg_speed[2] = {0,0};	// Flock average speeds
+	//float rel_avg_speed[2] = {0,0};	// Flock average speeds
 	float cohesion[2] = {0,0};
 	float dispersion[2] = {0,0};
-	float consistency[2] = {0,0};
+	//float consistency[2] = {0,0};
 	
 	/* Compute averages over the whole flock */
 	for(i=0;i<FLOCK_SIZE;i++){
             if (i==robot_id)
           	continue; // dont consider yourself for average
             for (j=0;j<2;j++) {
-              rel_avg_speed[j] += relative_speed[i][j] ;
+              //rel_avg_speed[j] += relative_speed[i][j] ;
               rel_avg_loc[j]   += relative_pos[i][j];
              }
   	}
 	for (j=0;j<2;j++) {
-	rel_avg_speed[j] /= FLOCK_SIZE-1 ;
+	//rel_avg_speed[j] /= FLOCK_SIZE-1 ;
 	rel_avg_loc[j]   /= FLOCK_SIZE-1;
 	}
 
@@ -400,16 +383,16 @@ void reynolds_rules() {
 	}
 	
 	/* Rule 3 - Consistency/Alignment: match the speeds of flockmates */
-	for (j=0;j<2;j++) {
-		consistency[j] = rel_avg_speed[j];
-         }
+	//for (j=0;j<2;j++) {
+		//consistency[j] = rel_avg_speed[j];
+         //}
 
          //aggregation of all behaviors with relative influence determined by weights
          for (j=0;j<2;j++) 
 	{
-                 speed[robot_id][j] = cohesion[j] * RULE1_WEIGHT;
-                 speed[robot_id][j] +=  dispersion[j] * RULE2_WEIGHT;
-                 speed[robot_id][j] +=  consistency[j] * RULE3_WEIGHT;
+                 speed[j] = cohesion[j] * RULE1_WEIGHT;
+                 speed[j] +=  dispersion[j] * RULE2_WEIGHT;
+                 //speed[robot_id][j] +=  consistency[j] * RULE3_WEIGHT;
          }
         //			speed[robot_id][1] *= -1; //y axis of webots is inverted	WHAT DO WE DO WITH THIS?	ok lets keep it non inverted for now
         
@@ -417,13 +400,74 @@ void reynolds_rules() {
         
         //move the robot according to some migration rule
         if(MIGRATORY_URGE == 0){
-          speed[robot_id][0] += 0.01*cos(my_position[2] + M_PI/2);
-          speed[robot_id][1] += 0.01*sin(my_position[2] + M_PI/2);
+          speed[0] += 0.01*cos(my_position[2] + M_PI/2);
+          speed[1] += 0.01*sin(my_position[2] + M_PI/2);
         }
         else {
-		speed[robot_id][0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT;
+		speed[0] += (migr[0]-my_position[0]) * MIGRATION_WEIGHT;
               //			speed[robot_id][1] -= (migr[1]-my_position[1]) * MIGRATION_WEIGHT; //y axis of webots is inverted	WHAT DO WE DO WITH THIS?	ok lets keep it non inverted for now (line below)
-		speed[robot_id][1] += (migr[1]-my_position[1]) * MIGRATION_WEIGHT;
+		speed[1] += (migr[1]-my_position[1]) * MIGRATION_WEIGHT;
         }
 }
 
+void send_ping(){
+	
+	int i;
+	for (i = 0; i < 1; i++)
+	{
+	    // takes ~15knops for a 32window, avoid putting messages too close...
+	    //long int j=0;
+	    //for(j = 0; j < 1000; j++)	asm("nop");
+          ircomSend(robot_id);	    
+	    while (ircomSendDone() == 0);
+	}
+	
+	
+	
+	}
+
+void receive_ping(){
+		int i = 0;
+	while (i < 50)
+	{
+	    // ircomListen();
+	    IrcomMessage imsg;
+	    //long int j;
+	    //for(j = 0; j < 100; j++)	asm("nop");
+	    ircomPopMessage(&imsg);
+	    if (imsg.error == 0)
+	    {
+			int other_robot_id = (int) imsg.value;
+			//if(((other_robot_id<5) && my_tribe==TRIBE_A) || ((other_robot_id>=5) && my_tribe==TRIBE_B))
+		    //{
+				/* Send Value*/		
+				double range = imsg.distance;
+				double theta = imsg.direction;
+					   theta += my_position[2];
+
+				prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
+				prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
+				relative_pos[other_robot_id][0] = range*cos(theta);  // relative x pos
+				relative_pos[other_robot_id][1] =1.0* range*sin(theta);  // relative x pos
+
+				//relative_speed[other_robot_id][0] = relative_speed[other_robot_id][0]*0.0 + 1.0*(1000/time_step)*(relative_pos[other_robot_id][0]-prev_relative_pos[other_robot_id][0]);
+				//relative_speed[other_robot_id][1] = relative_speed[other_robot_id][1]*0.0 + 1.0*(1000/time_step)*(relative_pos[other_robot_id][1]-prev_relative_pos[other_robot_id][1]);
+
+				//double c=range*cos(theta);
+					//	char tmp2[128];
+				//sprintf(tmp2, "Relative positon: %f  - distance=%f \t direction=%f \n",(double) c, (double) range, (double) theta);
+				//btcomSendString(tmp2);
+				//if (i%10==0) btcomSendString("Receive Success \n");
+				btcomSendString("Receive Success \n");
+			
+	    }//}
+	    else if (imsg.error > 0)
+	    {
+              btcomSendString("Receive Failed \n");
+	    }
+	    // else imsg.error == -1 -> no message available in the queue
+
+	    if (imsg.error == -1) i++;
+	}
+
+}
