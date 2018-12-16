@@ -37,7 +37,7 @@ my_position	epuckTest.c	/^float my_position[3];     		\/\/ X, Z, Theta of the cu
 my_tribe	epuckTest.c	/^int my_tribe;$/;"	v
 obstacleAvoidance	epuckTest.c	/^void obstacleAvoidance(int *bmsl,int *bmsr)$/;"	f
 obstacleAvoidanceSpeed	epuckTest.c	/^int obstacleAvoidanceSpeed = 500.0;$/;"	v
-obstacleAvoidanceThreshold	epuckTest.c	/^int obstacleAvoidanceThreshold = 30.0;$/;"	v
+obstacleAvoidanceThreshold	epuckTest.c	/^int obstacleAvoidanceThreshold = 50.0;$/;"	v
 prev_my_position	epuckTest.c	/^float prev_my_position[3];  		\/\/ X, Z, Theta of the current robot in the previous time step$/;"	v
 prev_relative_pos	epuckTest.c	/^float prev_relative_pos[FLOCK_SIZE][3];	\/\/ Previous relative  X, Z, Theta values of our tribe$/;"	v
 relative_pos	epuckTest.c	/^float relative_pos[FLOCK_SIZE][3];	\/\/ relative X, Z, Theta of all robots of our tribe$/;"	v

@@ -56,7 +56,7 @@
 #define RULE3_WEIGHT        (0.02/10)   // Weight of consistency rule. default 1.0/10
 #define MIGRATION_WEIGHT    (0.05/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
-#define BRT_WEIGHT           10
+#define BRT_WEIGHT         5
 #define MIGRATORY_URGE 1 // Tells the robots if they should just go forward or move towards a specific migratory direction
 
 #define ABS(x) ((x>=0)?(x):-(x))
@@ -64,6 +64,7 @@
 
 float sensorDir[NB_IR_SENSORS] = {0.2967, 0.8727, 1.5708, 2.6180, 3.6652, 4.7124, 5.4105, 5.9865};
 int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; // Maze
+//int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,18,28,36,10,8,-36,-58,-72}; // Maze
 int my_tribe;
 int robot_id;	// Unique robot ID
 
@@ -196,7 +197,10 @@ int main()
     ircomStart();
     ircomEnableContinuousListening();
     ircomListen();
-
+    	int bmsl, bmsr;	// Braitenberg parameters
+	    int msl, msr;	// Braitenberg parameters
+	    max_sens=0;
+for(;;){
 // Finish reseting the robot
     // rely on selector to define the role
 	int selector = getselector();
@@ -220,10 +224,10 @@ int main()
     //e_set_speed_left(100);
 	//e_set_speed_right(100);
 
-	int bmsl, bmsr;	// Braitenberg parameters
+
     obstacleAvoidance(&bmsl,&bmsr);
 	int i;
-	for (i = 0; i < 10; i++)
+	for (i = 0; i < 1; i++)
 	{
 	    // takes ~15knops for a 32window, avoid putting messages too close...
 	    long int j=0;
@@ -242,7 +246,7 @@ int main()
     // acting as receiver
 
 	i = 0;
-	while (i < 1)
+	while (i < 200)
 	{
 	    // ircomListen();
 	    IrcomMessage imsg;
@@ -275,11 +279,11 @@ int main()
 	    }//}
 	    else if (imsg.error > 0)
 	    {
-
+              btcomSendString("Receive Failed \n");
 	    }
 	    // else imsg.error == -1 -> no message available in the queue
 
-	    if (imsg.error != -1) i++;
+	    if (imsg.error == -1) i++;
 	}
 	
 	
@@ -290,7 +294,7 @@ int main()
     //e_activate_agenda(reynolds_rules, 10000);
     reynolds_rules();
     
-    int msl, msr;	// Braitenberg parameters
+    
     
     // Compute wheels speed from reynold's speed
 
@@ -306,55 +310,73 @@ int main()
     
 	msl += BRT_WEIGHT*bmsl;
 	msr += BRT_WEIGHT*bmsr;
-   limit_duo_proportional(&msl, &msr, MAX_SPEED);
+	
+
+    limit_duo_proportional(&msl, &msr, MAX_SPEED);
    	char tmp2[128];
-	sprintf(tmp2, "msl: %f  - msr=%f \n",(double) msl, (double) msr);
+	sprintf(tmp2, "msl= %f - msr=%f - bmsl= %f - bmsr=%f \n", 5.0 * (double) bmsl, 5.0* (double)bmsr,  5.0 * (double) bmsl, 5.0* (double)bmsr);
 	btcomSendString(tmp2);
 
 	e_set_speed_left(msl);
 	e_set_speed_right(msr);
-	long int j;
-	for(j = 0; j < 1000000; j++)	asm("nop");
+	int j;
+	for(j = 0; j < 10000; j++)	asm("nop");
 		// DO A TIME STEP (if possible)
 		//potential problem: odometry will work terribly bad, so we could use the motors get step and set steps functions, and not using any TIME_STEP at all.
  
-		
-    
+}	
+    ircomStop();
    
     return 0;
+    
 }
 
-int obstacleAvoidanceThreshold = 30.0;
+int obstacleAvoidanceThreshold = 50.0;
 int obstacleAvoidanceSpeed = 500.0;
 void obstacleAvoidance(int *bmsl,int *bmsr)
 {    
-    // check if an obstacle is perceived 
-	sum_sensors=0;	// Braitenberg parameters
+	
+	int n;
+	int i;
+	double sensorMean[8];
+	double sensors[NB_SENSORS];	// Array for the distance sensor readings
+	int numberOfSamples=30;
+	// check if an obstacle is perceived 
+	sum_sensors=0;*bmsl=0;*bmsr=0;	// Braitenberg parameters
 	// Braitenberg parameters
-	int distances[NB_SENSORS];	// Array for the distance sensor readings
-	max_sens=0;			// Store highest sensor value
-    int i=0;
-    for (i = 0; i < NB_SENSORS; i++)
-    {
-        distances[i] = e_get_calibrated_prox(i);
-	// if signal above noise
-	    
-	// compute direction to escape
-	 distances[i] = distances[i] - obstacleAvoidanceThreshold;
-	  
-	sum_sensors += distances[i]; // Add up sensor values
-	max_sens = max_sens>distances[i]?max_sens:distances[i]; // Check if new highest sensor value
-	*bmsr +=  e_puck_matrix[i] *distances[i];// Weighted sum of distance sensor values for Braitenburg vehicle
-	*bmsl +=  e_puck_matrix[i+NB_SENSORS]*distances[i];
-     }
-  *bmsl/=MIN_SENS; *bmsr/=MIN_SENS;
-  *bmsl+=66; *bmsr+=72;
-    // change movement direction
-    //e_set_speed_left(bmsl);
-    //e_set_speed_right(bmsr);
-    
-    // advertise obstacle avoidance in progress
-    // return 1;
+
+		for (i=0;i<8;i++)
+			sensorMean[i]=0;	
+		//Compute an average value of each sensor on multiple samples to reduce noise	
+		for (n=0;n<numberOfSamples;n++)
+		{	
+			// Get sensor values
+			for (i = 0; i < 8; i++) {
+				// Use the sensorzero[i] value generated in sensor_calibrate() to zero sensorvalues
+				sensors[i] = e_get_calibrated_prox(i);
+				//linearize the sensor output and compute the average
+				sensorMean[i]+=12.1514*log((double)sensors[i])/(double)numberOfSamples;
+			}
+
+		}
+
+		// Add the weighted sensors values
+		for (i = 0; i < 8; i++) {
+			*bmsr += e_puck_matrix[i] * (int)sensorMean[i];
+			*bmsl += e_puck_matrix[i+NB_SENSORS] * (int)sensorMean[i];
+			sum_sensors += sensorMean[i]; // Add up sensor values
+			max_sens = max_sens>sensorMean[i]?max_sens:sensorMean[i]; // Check if new highest sensor value
+		}
+		*bmsl/=MIN_SENS; *bmsr/=MIN_SENS;
+		*bmsl+=66; *bmsr+=72;
+
+
+		// Speed bounds, to avoid setting to high speeds to the motor
+		if (*bmsl > 1000) {*bmsl = 1000;}
+		if (*bmsr > 1000) {*bmsr = 1000;}
+		if (*bmsl< -1000) {*bmsl = -1000;}
+		if (*bmsr < -1000) {*bmsr= -1000;}
+
 }
 
 
