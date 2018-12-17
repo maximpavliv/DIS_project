@@ -4,48 +4,68 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.9~svn20110310	//
-ABS	epuckTest.c	62;"	d	file:
-AXLE_LENGTH	epuckTest.c	46;"	d	file:
-BRT_WEIGHT	epuckTest.c	59;"	d	file:
-FLOCK_SIZE	epuckTest.c	36;"	d	file:
-MAX_SENS	epuckTest.c	41;"	d	file:
-MAX_SPEED	epuckTest.c	42;"	d	file:
-MIGRATION_WEIGHT	epuckTest.c	57;"	d	file:
-MIGRATORY_URGE	epuckTest.c	60;"	d	file:
-MIN_SENS	epuckTest.c	40;"	d	file:
-M_PI	epuckTest.c	44;"	d	file:
-NB_SENSORS	epuckTest.c	39;"	d	file:
-RULE1_THRESHOLD	epuckTest.c	50;"	d	file:
-RULE1_WEIGHT	epuckTest.c	51;"	d	file:
-RULE2_THRESHOLD	epuckTest.c	53;"	d	file:
-RULE2_WEIGHT	epuckTest.c	54;"	d	file:
-RULE3_WEIGHT	epuckTest.c	56;"	d	file:
-SPEED_UNIT_RADS	epuckTest.c	47;"	d	file:
-TIME_STEP	epuckTest.c	43;"	d	file:
-TRIBE_A	epuckTest.c	37;"	d	file:
-TRIBE_B	epuckTest.c	38;"	d	file:
-WHEEL_RADIUS	epuckTest.c	48;"	d	file:
-compute_time_step	epuckTest.c	/^void compute_time_step() {$/;"	f
-compute_wheel_speeds	epuckTest.c	/^void compute_wheel_speeds(int *msl, int *msr) $/;"	f
-e_puck_matrix	epuckTest.c	/^int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; \/\/ Maze$/;"	v
-getselector	epuckTest.c	/^int getselector()$/;"	f
-limit_duo_proportional	epuckTest.c	/^void limit_duo_proportional(int *number_1, int *number_2, int limit) {$/;"	f
-main	epuckTest.c	/^int main()$/;"	f
-max_sens	epuckTest.c	/^int max_sens;			\/\/ Store highest sensor value$/;"	v
-migr	epuckTest.c	/^float migr[2] = {0.0,-10.0};	        \/\/ Migration vector$/;"	v
-my_position	epuckTest.c	/^float my_position[3];     		\/\/ X, Z, Theta of the current robot$/;"	v
-my_tribe	epuckTest.c	/^int my_tribe;$/;"	v
-obstacleAvoidance	epuckTest.c	/^void obstacleAvoidance(int *bmsl,int *bmsr)$/;"	f
-obstacleAvoidanceSpeed	epuckTest.c	/^int obstacleAvoidanceSpeed = 500.0;$/;"	v
-obstacleAvoidanceThreshold	epuckTest.c	/^int obstacleAvoidanceThreshold = 30.0;$/;"	v
-prev_my_position	epuckTest.c	/^float prev_my_position[3];  		\/\/ X, Z, Theta of the current robot in the previous time step$/;"	v
-prev_relative_pos	epuckTest.c	/^float prev_relative_pos[FLOCK_SIZE][3];	\/\/ Previous relative  X, Z, Theta values of our tribe$/;"	v
-relative_pos	epuckTest.c	/^float relative_pos[FLOCK_SIZE][3];	\/\/ relative X, Z, Theta of all robots of our tribe$/;"	v
-relative_speed	epuckTest.c	/^float relative_speed[FLOCK_SIZE][2];	\/\/ Speeds calculated with Reynold's rules of our tribe$/;"	v
-reynolds_rules	epuckTest.c	/^void reynolds_rules() {$/;"	f
-robot_id	epuckTest.c	/^int robot_id;	\/\/ Unique robot ID$/;"	v
-sensorDir	epuckTest.c	/^float sensorDir[NB_IR_SENSORS] = {0.2967, 0.8727, 1.5708, 2.6180, 3.6652, 4.7124, 5.4105, 5.9865};$/;"	v
-speed	epuckTest.c	/^float speed[FLOCK_SIZE][2];		\/\/ Speeds calculated with Reynold's rules of our tribe$/;"	v
-sum_sensors	epuckTest.c	/^int sum_sensors;	\/\/ Braitenberg parameters$/;"	v
-time_step	epuckTest.c	/^float time_step;$/;"	v
-update_self_motion	epuckTest.c	/^void update_self_motion() { $/;"	f
+ABS	epuckController.c	64;"	d	file:
+AXLE_LENGTH	epuckController.c	45;"	d	file:
+BRAITENBERG	epuckController.c	62;"	d	file:
+BRT_WEIGHT	epuckController.c	59;"	d	file:
+DEBUG	epuckController.c	34;"	d	file:
+DEBUG_ROBOT_ID	epuckController.c	35;"	d	file:
+FLOCK_SIZE	epuckController.c	41;"	d	file:
+MAX_SENS	epuckController.c	39;"	d	file:
+MAX_SPEED	epuckController.c	40;"	d	file:
+MIGRATION_WEIGHT	epuckController.c	57;"	d	file:
+MIGRATORY_URGE	epuckController.c	61;"	d	file:
+MIN_SENS	epuckController.c	38;"	d	file:
+M_PI	epuckController.c	43;"	d	file:
+NB_SENSORS	epuckController.c	37;"	d	file:
+REYNOLDS	epuckController.c	60;"	d	file:
+RULE1_THRESHOLD	epuckController.c	50;"	d	file:
+RULE1_WEIGHT	epuckController.c	51;"	d	file:
+RULE2_THRESHOLD	epuckController.c	53;"	d	file:
+RULE2_WEIGHT	epuckController.c	54;"	d	file:
+RULE3_WEIGHT	epuckController.c	56;"	d	file:
+SPEED_UNIT_RADS	epuckController.c	46;"	d	file:
+TRIBE_A	epuckController.c	66;"	d	file:
+TRIBE_B	epuckController.c	67;"	d	file:
+WHEEL_RADIUS	epuckController.c	47;"	d	file:
+bmsl	epuckController.c	/^int bmsl, bmsr, sum_sensors;	\/\/ Braitenberg parameters$/;"	v
+bmsr	epuckController.c	/^int bmsl, bmsr, sum_sensors;	\/\/ Braitenberg parameters$/;"	v
+braitenberg	epuckController.c	/^void braitenberg()$/;"	f
+compute_my_speed	epuckController.c	/^void compute_my_speed() {$/;"	f
+compute_wheel_speeds	epuckController.c	/^void compute_wheel_speeds(int *msl, int *msr) $/;"	f
+didReceive	epuckController.c	/^int didReceive[FLOCK_SIZE];$/;"	v
+distances	epuckController.c	/^int distances[NB_SENSORS];	\/\/ Array for the distance sensor readings$/;"	v
+e_puck_ids	epuckController.c	/^int e_puck_ids[] = {127, 108, 136, 60, 54, 112};$/;"	v
+e_puck_matrix	epuckController.c	/^int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; \/\/ Maze$/;"	v
+getCurrentTime	epuckController.c	/^long int getCurrentTime() {$/;"	f
+getrealrobotid	epuckController.c	/^int getrealrobotid()$/;"	f
+getrobotidfromreal	epuckController.c	/^int getrobotidfromreal(int realrobotid) {$/;"	f
+getselector	epuckController.c	/^int getselector()$/;"	f
+limit_duo_proportional	epuckController.c	/^void limit_duo_proportional(int *number_1, int *number_2, int limit) {$/;"	f
+main	epuckController.c	/^int main(){ $/;"	f
+max_sens	epuckController.c	/^int max_sens;			\/\/ Store highest sensor value$/;"	v
+migr	epuckController.c	/^float migr[2] = {0.0,10.0};	        \/\/ Migration vector$/;"	v
+msl	epuckController.c	/^int msl, msr;			\/\/ Wheel speeds$/;"	v
+msr	epuckController.c	/^int msl, msr;			\/\/ Wheel speeds$/;"	v
+my_position	epuckController.c	/^float my_position[3];     		\/\/ X, Z, Theta of the current robot$/;"	v
+my_speed	epuckController.c	/^float my_speed[2];$/;"	v
+my_tribe	epuckController.c	/^int my_tribe;$/;"	v
+obstacleAvoidance	epuckController.c	/^void obstacleAvoidance()$/;"	f
+obstacleAvoidanceSpeed	epuckController.c	/^int obstacleAvoidanceSpeed = 500.0;$/;"	v
+obstacleAvoidanceThreshold	epuckController.c	/^int obstacleAvoidanceThreshold = 30.0;$/;"	v
+prev_my_position	epuckController.c	/^float prev_my_position[3];  		\/\/ X, Z, Theta of the current robot in the previous time step$/;"	v
+process_received_ping_messages	epuckController.c	/^void process_received_ping_messages(void)$/;"	f
+real_robot_id	epuckController.c	/^int real_robot_id;$/;"	v
+receivedBR	epuckController.c	/^int receivedBR[FLOCK_SIZE];             \/\/ indicates if a signal was received from the associated robot$/;"	v
+relative_pos	epuckController.c	/^float relative_pos[FLOCK_SIZE][3];	\/\/ relative X, Z, Theta of all robots of our tribe$/;"	v
+reset	epuckController.c	/^void reset() $/;"	f
+resetDidReceive	epuckController.c	/^void resetDidReceive() {$/;"	f
+reynolds_rules	epuckController.c	/^void reynolds_rules() {$/;"	f
+robot_id	epuckController.c	/^int robot_id;	\/\/ Unique robot ID$/;"	v
+send_ping	epuckController.c	/^void send_ping(void)  $/;"	f
+sensorDir	epuckController.c	/^float sensorDir[NB_IR_SENSORS] = {0.2967, 0.8727, 1.5708, 2.6180, 3.6652, 4.7124, 5.4105, 5.9865};$/;"	v
+sum_sensors	epuckController.c	/^int bmsl, bmsr, sum_sensors;	\/\/ Braitenberg parameters$/;"	v
+time_step	epuckController.c	/^double time_step;$/;"	v
+update_self_motion	epuckController.c	/^void update_self_motion(int msl, int msr) { $/;"	f
+weightleft	epuckController.c	/^int weightleft[8] = {-10, -10, -5, 0, 0, 5, 10, 10};$/;"	v
+weightright	epuckController.c	/^int weightright[8] = {10, 10, 5, 0, 0, -5, -10, -10};$/;"	v
