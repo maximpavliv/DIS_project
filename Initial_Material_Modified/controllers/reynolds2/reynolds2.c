@@ -44,7 +44,7 @@
 #define RULE2_THRESHOLD     0.05 // Threshold to activate dispersion rule. default 0.15
 #define RULE2_WEIGHT        (0.02/10)	   // Weight of dispersion rule. default 0.02/10
 
-#define RULE3_WEIGHT        (0.02/10)   // Weight of consistency rule. default 1.0/10
+#define RULE3_WEIGHT        (0.01/10)   // Weight of consistency rule. default 1.0/10
 #define MIGRATION_WEIGHT    (0.05/10)   // Wheight of attraction towards the common goal. default 0.01/10
 
 #define BRT_WEIGHT           10

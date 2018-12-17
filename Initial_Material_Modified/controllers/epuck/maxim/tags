@@ -24,24 +24,26 @@ SPEED_UNIT_RADS	epuckController.c	42;"	d	file:
 TRIBE_A	epuckController.c	60;"	d	file:
 TRIBE_B	epuckController.c	61;"	d	file:
 WHEEL_RADIUS	epuckController.c	43;"	d	file:
-compute_time_step	epuckController.c	/^void compute_time_step() {$/;"	f
+compute_my_speed	epuckController.c	/^void compute_my_speed() {$/;"	f
 compute_wheel_speeds	epuckController.c	/^void compute_wheel_speeds(int *msl, int *msr) $/;"	f
 e_puck_matrix	epuckController.c	/^int e_puck_matrix[16] = {17,29,34,10,8,-38,-56,-76,-72,-58,-36,8,10,36,28,18}; \/\/ Maze$/;"	v
 getselector	epuckController.c	/^int getselector()$/;"	f
 limit_duo_proportional	epuckController.c	/^void limit_duo_proportional(int *number_1, int *number_2, int limit) {$/;"	f
 main	epuckController.c	/^int main(){ $/;"	f
-migr	epuckController.c	/^float migr[2] = {0.0,-10.0};	        \/\/ Migration vector$/;"	v
+migr	epuckController.c	/^float migr[2] = {0.0,10.0};	        \/\/ Migration vector$/;"	v
+msl	epuckController.c	/^int msl, msr;			\/\/ Wheel speeds$/;"	v
+msr	epuckController.c	/^int msl, msr;			\/\/ Wheel speeds$/;"	v
 my_position	epuckController.c	/^float my_position[3];     		\/\/ X, Z, Theta of the current robot$/;"	v
+my_speed	epuckController.c	/^float my_speed[2];$/;"	v
 my_tribe	epuckController.c	/^int my_tribe;$/;"	v
 prev_my_position	epuckController.c	/^float prev_my_position[3];  		\/\/ X, Z, Theta of the current robot in the previous time step$/;"	v
 prev_relative_pos	epuckController.c	/^float prev_relative_pos[FLOCK_SIZE][3];	\/\/ Previous relative  X, Z, Theta values of our tribe$/;"	v
 process_received_ping_messages	epuckController.c	/^void process_received_ping_messages(void)$/;"	f
 relative_pos	epuckController.c	/^float relative_pos[FLOCK_SIZE][3];	\/\/ relative X, Z, Theta of all robots of our tribe$/;"	v
-relative_speed	epuckController.c	/^float relative_speed[FLOCK_SIZE][2];	\/\/ Speeds calculated with Reynold's rules of our tribe$/;"	v
 reset	epuckController.c	/^static void reset() $/;"	f	file:
 reynolds_rules	epuckController.c	/^void reynolds_rules() {$/;"	f
 robot_id	epuckController.c	/^int robot_id;	\/\/ Unique robot ID$/;"	v
 send_ping	epuckController.c	/^void send_ping(void)  $/;"	f
-speed	epuckController.c	/^float speed[FLOCK_SIZE][2];		\/\/ Speeds calculated with Reynold's rules of our tribe$/;"	v
-time_step	epuckController.c	/^double time_step;$/;"	v
+tmp	epuckController.c	/^char tmp[128];$/;"	v
 update_self_motion	epuckController.c	/^void update_self_motion(int msl, int msr) { $/;"	f
+verbose_count	epuckController.c	/^int verbose_count = 0;$/;"	v

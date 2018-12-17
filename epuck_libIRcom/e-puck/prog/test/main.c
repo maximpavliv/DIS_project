@@ -43,6 +43,7 @@ int getselector()
 
 void obstacleAvoidance();
 
+
 int main()
 {
     // init robot
@@ -55,7 +56,7 @@ int main()
 
     // wait for s to start
     //btcomWaitForCommand('s');
-    //btcomSendString("==== READY - IR TESTING ====\n\n");
+    btcomSendString("==== READY - IR TESTING ====\n\n");
 
     e_calibrate_ir(); 
 
@@ -70,6 +71,8 @@ int main()
     // show selector choosen
     int i;
     long int j;
+
+
     for (i = 0; i < selector; i++)
     {
 	e_led_clear();
@@ -89,7 +92,7 @@ int main()
     }
 
     // activate obstacle avoidance
-    e_activate_agenda(obstacleAvoidance, 10000);
+//    e_activate_agenda(obstacleAvoidance, 10000);
 
     // acting as sender
     if (selector == 1)
@@ -97,10 +100,11 @@ int main()
 	btcomSendString("==== EMITTER ====\n\n");
 
 	int i;
-	for (i = 0; i < 10000; i++)
+//	for (i = 0; i < 10000; i++)
+	while(1)
 	{
 	    // takes ~15knops for a 32window, avoid putting messages too close...
-	    for(j = 0; j < 100000; j++)	asm("nop");
+	    for(j = 0; j < 1000; j++)	asm("nop");
 
 	    ircomSend(i % 256);	    
 	    while (ircomSendDone() == 0);
@@ -115,18 +119,21 @@ int main()
 	btcomSendString("==== RECEIVER ====\n\n");
 
 	int i = 0;
-	while (i < 200)
+	//while (i < 200)
+	while(1)
 	{
+		char tmp[128];
 	    // ircomListen();
 	    IrcomMessage imsg;
 	    ircomPopMessage(&imsg);
+
+
 	    if (imsg.error == 0)
 	    {
 			e_set_led(1, 2);
 		int val = (int) imsg.value;
-	    
-		/* Send Value*/		
-		char tmp[128];
+			    
+		// Send Value
 		sprintf(tmp, "Receive successful : %d  - distance=%f \t direction=%f \n", val, (double)imsg.distance, (double)imsg.direction);
 		btcomSendString(tmp);
 	    }
@@ -228,4 +235,5 @@ void obstacleAvoidance()
     
     // advertise obstacle avoidance in progress
     // return 1;
+
 }

@@ -62,7 +62,7 @@
 #  TODO: Figure out why LD won't link C++ object files with standard args.
 # ==============================================================================
 
-PROG = epuckController
+PROG = test
 EPUCKLIBROOT = ../src
 
 # ==============================================================================
